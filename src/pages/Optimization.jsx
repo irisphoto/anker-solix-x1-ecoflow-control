@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Zap, Play, CheckCircle2, TrendingUp } from "lucide-react";
 import EnergyChart from "@/components/EnergyChart";
 import AiOptimizationCard from "@/components/AiOptimizationCard";
+import EvChargeRuleCard from "@/components/EvChargeRuleCard";
 
 const MODES = [
   { value: "self_use", label: "Self-use" },
@@ -106,6 +107,8 @@ export default function Optimization() {
       </div>
 
       <AiOptimizationCard device={device} />
+
+      <EvChargeRuleCard tariff={tariff} schedule={schedule} updateSchedule={updateSchedule} ensureSchedule={ensureSchedule} />
 
       {tariff ? (
         <Card>

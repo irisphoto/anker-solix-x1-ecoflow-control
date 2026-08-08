@@ -46,6 +46,22 @@
     "applied": {
       "type": "boolean",
       "default": false
+    },
+    "ev_auto_charge_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "ev_price_threshold_p": {
+      "type": "number",
+      "default": 10
+    },
+    "ev_last_action": {
+      "type": "string",
+      "default": ""
+    },
+    "ev_last_checked": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

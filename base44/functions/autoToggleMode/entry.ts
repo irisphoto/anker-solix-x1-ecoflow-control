@@ -2,25 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from "base44:runtime";
 import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
 
-const TIMEZONE = "Europe/London";
+import { toMin, currentMinutes, inWindow } from "../../shared/tariffTime.ts";
 
-function toMin(hhmm) {
-  const [h, m] = String(hhmm || "").split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
-}
-function currentMinutes() {
-  const s = new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIMEZONE, hour: "2-digit", minute: "2-digit", hour12: false,
-  }).format(new Date());
-  const [h, m] = s.split(":").map(Number);
-  return h * 60 + m;
-}
-function inWindow(cur, startStr, endStr) {
-  const s = toMin(startStr), e = toMin(endStr);
-  if (s === e) return false;
-  if (s < e) return cur >= s && cur < e;
-  return cur >= s || cur < e; // wraps midnight
-}
+const TIMEZONE = "Europe/London";
 
 // Cost-saving = Anker "time_of_use" (cycles battery to shave peak / charge off-peak)
 // Backup     = Anker "backup" (holds charge as reserve)

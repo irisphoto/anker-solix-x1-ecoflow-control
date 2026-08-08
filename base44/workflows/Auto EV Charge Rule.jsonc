@@ -1,0 +1,45 @@
+{
+  "description": "Every 30 minutes, compares the live import price to your EV charge threshold and starts grid charging only when prices drop to or below it.",
+  "name": "Auto EV Charge Rule",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_ev_charge_rule",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_rule": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "autoEvChargeRule",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Run EV charge rule",
+            "description": "Check price vs threshold"
+          }
+        }
+      }
+    ]
+  }
+}
