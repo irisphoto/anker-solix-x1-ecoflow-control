@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BatteryFull, RefreshCw } from "lucide-react";
 import BatteryGauge from "@/components/BatteryGauge";
+import DeviceComponents from "@/components/DeviceComponents";
 
 const MODES = ["self_use", "time_of_use", "backup", "manual"];
 
@@ -92,6 +93,12 @@ export default function Devices() {
           ))}
         </div>
       )}
+
+      <div className="pt-2 border-t border-border">
+        <h2 className="text-xl font-heading font-bold text-foreground mt-6 mb-1">Components</h2>
+        <p className="text-sm text-muted-foreground mb-4">All batteries, inverters and the EV charger on this site</p>
+        <DeviceComponents />
+      </div>
     </div>
   );
 }
