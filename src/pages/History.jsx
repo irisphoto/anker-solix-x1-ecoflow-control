@@ -30,6 +30,7 @@ export default function History() {
     home_usage_w: r.home_usage_w,
     battery_power_w: r.battery_power_w,
     grid_power_w: r.grid_power_w,
+    grid_export_w: r.grid_power_w < 0 ? -r.grid_power_w : 0,
   }));
 
   const totals = anker.reduce(
@@ -37,9 +38,10 @@ export default function History() {
       acc.solar += r.solar_power_w;
       acc.home += r.home_usage_w;
       acc.grid += r.grid_power_w;
+      acc.export += r.grid_power_w < 0 ? -r.grid_power_w : 0;
       return acc;
     },
-    { solar: 0, home: 0, grid: 0 }
+    { solar: 0, home: 0, grid: 0, export: 0 }
   );
 
   const octoSorted = [...octo].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -70,10 +72,11 @@ export default function History() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Solar (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.solar)}</div></CardContent></Card>
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Home (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.home)}</div></CardContent></Card>
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Grid net (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.grid)}</div></CardContent></Card>
+            <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Discharge to grid (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.export)}</div></CardContent></Card>
             <Card>
               <CardContent className="p-4 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-[hsl(280_65%_55%)]" />
