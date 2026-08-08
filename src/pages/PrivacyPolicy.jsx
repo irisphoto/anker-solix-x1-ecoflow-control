@@ -10,9 +10,9 @@ const SECTIONS = [
     title: "Information We Collect",
     body: [
       "Account information: your email address and name, used to identify you within the app.",
+      "Connection credentials you enter: your Anker SOLIX email, password and country, and your Octopus Energy API key and account number. These are stored against your own account so the app can retrieve your data on your behalf.",
       "Energy device data: telemetry from your Anker SOLIX X1 system, including battery level, solar generation, home usage, grid flow and EV charger power.",
       "Tariff and consumption data: electricity tariff rates and half-hourly consumption retrieved from your Octopus Energy account.",
-      "Connection credentials: your Anker and Octopus Energy login details, stored securely in an encrypted secrets store and used only to retrieve your own data.",
     ],
   },
   {
@@ -22,7 +22,7 @@ const SECTIONS = [
       "To display real-time energy generation, storage and consumption on your dashboard.",
       "To calculate savings and visualize trends over time.",
       "To run tariff-aware optimisation, automation rules and AI-generated charging plans for your battery and EV charger.",
-      "To send you optional email alerts about your energy savings.",
+      "To send you optional email alerts about your energy savings, to your registered email address.",
       "We never sell your data or share it with advertisers.",
     ],
   },
@@ -31,16 +31,17 @@ const SECTIONS = [
     title: "Data Storage & Security",
     body: [
       "Your data is stored in the secure Base44 cloud platform, hosted on managed infrastructure with encryption in transit.",
-      "API credentials for Anker and Octopus are kept in an encrypted secrets vault and are never exposed to the client.",
-      "Each user can only access their own device, tariff and reading records — access is enforced at the database level.",
+      "Each user's devices, readings, tariffs and schedules are isolated to that account. Access is enforced at the database level — you can only ever see or control your own energy system, never anyone else's.",
+      "Your Anker password and Octopus API key are stored against your account and used only to authenticate with Anker and Octopus on your behalf. Because Anker does not offer a public OAuth login, your Anker password is stored as you provide it; keep your account secure.",
+      "Credentials are never exposed to other users and are never used to access any account but your own.",
     ],
   },
   {
     icon: ExternalLink,
     title: "Third-Party Services",
     body: [
-      "Anker SOLIX cloud API — to read and control your energy storage system on your behalf.",
-      "Octopus Energy API — to retrieve tariff rates and smart-meter consumption.",
+      "Anker SOLIX cloud API — to read and control your energy storage system on your behalf. This is an unofficial, community-reverse-engineered API and may change or stop working without notice.",
+      "Octopus Energy API — to retrieve tariff rates and smart-meter consumption from your account.",
       "OpenAI / Google Gemini — to generate AI-driven charging recommendations based on your usage and tariff (no personal data is sold to these providers).",
       "Apple App Store — used to deliver the app to your device. Apple's privacy policy applies to App Store activity.",
     ],
@@ -50,8 +51,9 @@ const SECTIONS = [
     title: "Your Rights",
     body: [
       "You may access, correct or request deletion of your account and energy data at any time from within the app or by contacting us.",
-      "You can disconnect Anker or Octopus at any time; we will stop retrieving new data once access is revoked.",
+      "You can remove your Anker or Octopus credentials at any time in Settings; we will stop retrieving new data once access is revoked.",
       "You may withdraw consent for email alerts by disabling them in Settings.",
+      "You are responsible for keeping your Anker and Octopus credentials secure and for any actions taken through the app using your accounts.",
     ],
   },
   {
@@ -68,7 +70,6 @@ export default function PrivacyPolicy() {
   const lastUpdated = "8 August 2026";
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -83,7 +84,6 @@ export default function PrivacyPolicy() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         <div className="flex items-center gap-2 text-primary mb-3">
           <Shield className="w-5 h-5" />
@@ -94,13 +94,13 @@ export default function PrivacyPolicy() {
         </h1>
         <p className="text-muted-foreground leading-relaxed">
           SolixX Energy Companion helps you monitor and optimise your Anker SOLIX X1
-          home energy system alongside your Octopus Energy tariff. We take your privacy
-          seriously and only collect what's needed to run the app for you.
+          home energy system alongside your Octopus Energy tariff. Each user connects their
+          own accounts and only ever sees their own data. We take your privacy seriously and
+          only collect what's needed to run the app for you.
         </p>
         <p className="text-xs text-muted-foreground mt-4">Last updated: {lastUpdated}</p>
       </section>
 
-      {/* Sections */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-16 space-y-4">
         {SECTIONS.map((s) => {
           const Icon = s.icon;
@@ -126,11 +126,11 @@ export default function PrivacyPolicy() {
           );
         })}
 
-        {/* Footer */}
         <div className="pt-2 text-center">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} SolixX Energy Companion. This privacy policy is
-            provided for users of the iOS app and the web application.
+            provided for users of the iOS app and the web application. See our{" "}
+            <Link to="/terms" className="text-primary underline-offset-4 hover:underline">Terms of Service</Link>.
           </p>
         </div>
       </section>

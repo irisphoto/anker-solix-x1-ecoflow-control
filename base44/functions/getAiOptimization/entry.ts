@@ -1,12 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // AI energy advisor.
-// Feeds the LLM the live battery state, EV charger draw, active tariff windows and
-// today's generation/usage, and asks for the best windows to:
-//   - charge the home battery (cheapest grid import)
-//   - charge the EV (off-peak / solar surplus)
-//   - export excess back to the grid (highest export price)
-// Returns a structured recommendation the UI can render as a plan.
+// All reads are scoped to the calling user's own data via user context (RLS),
+// so recommendations are built only from that user's devices, tariffs and readings.
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
 function fmtTime(hh) {
@@ -59,29 +55,29 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const { device_id } = body;
 
+    // User context → only this user's devices are visible.
     const devices = device_id
-      ? [await base44.asServiceRole.entities.Device.get(device_id)]
-      : await base44.asServiceRole.entities.Device.list();
+      ? [await base44.entities.Device.get(device_id).catch(() => null)]
+      : await base44.entities.Device.list();
     const device = (devices && devices[0]) || null;
-    if (!device) return Response.json({ error: 'No device found' }, { status: 404 });
+    if (!device) return Response.json({ error: 'No device found. Add your Anker details in Settings and sync.' }, { status: 404 });
 
-    const tariffs = await base44.asServiceRole.entities.Tariff.filter({ is_active: true });
+    const tariffs = await base44.entities.Tariff.filter({ is_active: true });
     const tariff = (tariffs && tariffs[0]) || null;
 
-    // Recent readings for today's shape (optional context)
     let readings = [];
     try {
-      readings = await base44.asServiceRole.entities.EnergyReading.filter({ device_id: device.id }, '-timestamp', 24);
+      readings = await base44.entities.EnergyReading.filter({ device_id: device.id }, '-timestamp', 24);
     } catch { readings = []; }
 
     const ctx = {
       device_name: device.name,
       battery_level_pct: num(device.battery_level),
       battery_capacity_wh: num(device.battery_capacity_wh) || 5120,
-      battery_power_w: num(device.battery_power_w), // +ve discharging to home
+      battery_power_w: num(device.battery_power_w),
       solar_power_w: num(device.solar_power_w),
       home_usage_w: num(device.home_usage_w),
-      grid_power_w: num(device.grid_power_w), // +ve importing
+      grid_power_w: num(device.grid_power_w),
       ev_charger_power_w: num(device.ev_charger_power_w),
       solar_today_wh: num(device.solar_today_wh),
       home_today_wh: num(device.home_today_wh),
@@ -138,11 +134,9 @@ Return only valid JSON matching the schema. Use decimal hours (0-24) for window 
       add_context_from_internet: false,
     });
 
-    // InvokeLLM with response_json_schema returns a dict already.
     let rec = llm && llm.data ? llm.data : llm;
     if (!rec || typeof rec !== "object") rec = { summary: "No recommendation returned.", tips: [] };
 
-    // Normalize window times for the UI.
     function win(w) {
       if (!w) return null;
       return {

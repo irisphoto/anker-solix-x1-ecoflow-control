@@ -1,15 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from "base44:runtime";
+import { getOctopusCreds } from "../../shared/userIntegration.ts";
 
 const API_BASE = "https://api.octopus.energy/v1";
 
-function authHeader() {
-  const key = secrets.get("OCTOPUS_API_KEY");
-  return "Basic " + Buffer.from(key + ":").toString("base64");
+function authHeader(apiKey) {
+  return "Basic " + Buffer.from(apiKey + ":").toString("base64");
 }
 
-async function octopusGet(path) {
-  const res = await fetch(API_BASE + path, { headers: { Authorization: authHeader() } });
+async function octopusGet(path, apiKey) {
+  const res = await fetch(API_BASE + path, { headers: { Authorization: authHeader(apiKey) } });
   if (!res.ok) {
     let detail = "";
     try { detail = await res.text(); } catch {}
@@ -48,14 +47,13 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const apiKey = secrets.get("OCTOPUS_API_KEY");
-    const accountNumber = secrets.get("OCTOPUS_ACCOUNT_NUMBER");
-    if (!apiKey || !accountNumber) {
-      return Response.json({ error: 'Octopus credentials not configured.' }, { status: 400 });
-    }
+    let creds;
+    try { creds = await getOctopusCreds(base44); }
+    catch (e) { return Response.json({ error: e.message }, { status: 400 }); }
+    const { apiKey, accountNumber } = creds;
 
     // 1. Account → active import electricity meter point + current agreement
-    const account = await octopusGet(`/accounts/${accountNumber}/`);
+    const account = await octopusGet(`/accounts/${accountNumber}/`, apiKey);
     let mpan = null, serial = null, tariffCode = null;
     for (const prop of account.properties || []) {
       for (const emp of prop.electricity_meter_points || []) {
@@ -74,7 +72,7 @@ export default async function(req) {
     }
     if (!mpan) return Response.json({ error: 'No active electricity import meter point found on this account.' }, { status: 400 });
 
-    // 2. Parse product code + region from tariff code (e.g. E-1R-INTELLI-FIX-12M-26-06-13-H)
+    // 2. Parse product code + region from tariff code
     let productCode = null, region = null;
     const m = tariffCode.match(/^[A-Z]-1R-(.+)-([A-P])$/);
     if (m) { productCode = m[1]; region = m[2]; }
@@ -85,9 +83,8 @@ export default async function(req) {
     let offPeakEnd = "05:30";
 
     if (productCode) {
-      // Region keys in the product object are "_A".."_P"; payment method is direct_debit_monthly
       try {
-        const product = await octopusGet(`/products/${productCode}/`);
+        const product = await octopusGet(`/products/${productCode}/`, apiKey);
         const single = product.single_register_electricity_tariffs || {};
         const dual = product.dual_register_electricity_tariffs || {};
         const regionKey = region ? `_${region}` : null;
@@ -95,13 +92,11 @@ export default async function(req) {
         const dualRegion = (regionKey && dual[regionKey]) || dual;
         const dualBundle = dualRegion && (dualRegion.direct_debit_monthly || Object.values(dualRegion)[0]);
         if (dualBundle) {
-          // Dual-register (Economy 7 style): day + night tariff rate arrays
           dayRate = currentValue((dualBundle.day_tariff && dualBundle.day_tariff.rates) || []);
           nightRate = currentValue((dualBundle.night_tariff && dualBundle.night_tariff.rates) || []);
           standingCharge = currentValue(dualBundle.standing_charges || []);
           hasOffPeak = nightRate != null;
         } else {
-          // Single register (Intelligent Go etc.): flat standard unit rate + standing charge
           const singleRegion = (regionKey && single[regionKey]) || single;
           const bundle = singleRegion && (singleRegion.direct_debit_monthly || Object.values(singleRegion)[0]);
           if (bundle) {
@@ -113,7 +108,7 @@ export default async function(req) {
       } catch {}
     }
 
-    // 3. Update active Tariff record (or create one)
+    // 3. Update the caller's active Tariff record (RLS-scoped to them)
     const tariffData = {
       name: "Octopus Intelligent Go",
       currency: "£",
@@ -126,22 +121,22 @@ export default async function(req) {
       has_peak: false,
       is_active: true,
     };
-    const existingTariffs = await base44.asServiceRole.entities.Tariff.filter({ is_active: true });
+    const existingTariffs = await base44.entities.Tariff.filter({ is_active: true });
     let tariffId;
     if (existingTariffs && existingTariffs.length) {
-      await base44.asServiceRole.entities.Tariff.update(existingTariffs[0].id, tariffData);
+      await base44.entities.Tariff.update(existingTariffs[0].id, tariffData);
       tariffId = existingTariffs[0].id;
     } else {
       const t = await base44.entities.Tariff.create(tariffData);
       tariffId = t.id;
     }
 
-    // 4. Half-hourly consumption — incremental: backfill all on first run, then only new readings
-    const devices = await base44.asServiceRole.entities.Device.list("-last_sync", 1);
+    // 4. Half-hourly consumption — incremental backfill, scoped to the caller's device
+    const devices = await base44.entities.Device.list("-last_sync", 1);
     const deviceId = devices && devices[0] && devices[0].id;
     let stored = 0;
     if (deviceId) {
-      const latest = await base44.asServiceRole.entities.EnergyReading.filter(
+      const latest = await base44.entities.EnergyReading.filter(
         { device_id: deviceId, source: "octopus" }, "-timestamp", 1
       );
       const lastTs = latest && latest[0] && latest[0].timestamp ? new Date(latest[0].timestamp).getTime() : null;
@@ -153,12 +148,11 @@ export default async function(req) {
       let nextPath = `/electricity-meter-points/${mpan}/meters/${serial}/consumption/?page_size=25000&order_by=period&period_from=${periodFrom}`;
       let guard = 0;
       while (nextPath && guard < 20) {
-        const page = await octopusGet(nextPath);
+        const page = await octopusGet(nextPath, apiKey);
         consumption = consumption.concat(page.results || []);
         nextPath = page.next ? String(page.next).replace(API_BASE, "") : null;
         guard++;
       }
-      // Drop the boundary reading already stored (interval_start <= lastTs) to avoid duplicates
       consumption = consumption
         .filter(c => Number(c.consumption) > 0 && (!lastTs || new Date(c.interval_start).getTime() > lastTs))
         .sort((a, b) => new Date(a.interval_start) - new Date(b.interval_start));

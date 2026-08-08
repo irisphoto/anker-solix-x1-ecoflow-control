@@ -9,13 +9,14 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import AppLayout from "@/components/AppLayout";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 import Dashboard from "@/pages/Dashboard";
 import Optimization from "@/pages/Optimization";
 import History from "@/pages/History";
 import Devices from "@/pages/Devices";
 import Settings from "@/pages/Settings";
 
-const PUBLIC_PATHS = ["/privacy-policy"];
+const PUBLIC_PATHS = ["/privacy-policy", "/terms"];
 
 const AuthenticatedApp = () => {
   const location = useLocation();
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Public routes — accessible without login */}
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
       {/* Add your page Route elements here */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />

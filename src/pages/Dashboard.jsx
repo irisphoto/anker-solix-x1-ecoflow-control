@@ -1,5 +1,6 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
+import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,11 +95,16 @@ export default function Dashboard() {
         <Card>
           <CardContent className="py-16 text-center">
             <Zap className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-            <h3 className="font-heading font-semibold text-foreground">No devices yet</h3>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Connect your Anker SOLIX cloud account and sync to pull your system.
+            <h3 className="font-heading font-semibold text-foreground">Welcome — let's connect your system</h3>
+            <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-md mx-auto">
+              Add your Anker SOLIX and Octopus Energy details in Settings, then sync to pull your live energy data.
             </p>
-            <Button onClick={sync}>Sync from Anker cloud</Button>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button asChild>
+                <Link to="/settings">Add my details</Link>
+              </Button>
+              <Button variant="outline" onClick={sync}>Sync from Anker cloud</Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

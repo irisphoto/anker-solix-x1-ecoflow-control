@@ -1,13 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // Smart tariff-aware optimization engine.
-// Builds a 24h plan for a battery system using the active Tariff + Schedule.
-// Strategy:
-//  - Off-peak hours + charge_from_grid_off_peak: charge from grid up to max_soc
-//  - Peak hours + discharge_during_peak: discharge battery to cover home load (peak shaving)
-//  - All other hours: self-use (solar -> home -> battery -> grid)
-//  - Never drop below backup_reserve_percent / min_soc
-// Estimates daily savings vs a "always import" baseline.
+// Builds a 24h plan for a battery system using the caller's active Tariff + Schedule.
+// All reads/writes are scoped to the calling user via user context (RLS).
 
 const MODE_LABELS = {
   self_use: "Self-use",
@@ -51,12 +46,13 @@ export default async function(req) {
     const { device_id, apply } = body;
     if (!device_id) return Response.json({ error: 'device_id is required' }, { status: 400 });
 
-    const device = await base44.asServiceRole.entities.Device.get(device_id);
+    // Ownership: user context (RLS) returns null if not the caller's device.
+    const device = await base44.entities.Device.get(device_id).catch(() => null);
     if (!device) return Response.json({ error: 'Device not found' }, { status: 404 });
 
-    const tariffs = await base44.asServiceRole.entities.Tariff.filter({ is_active: true });
+    const tariffs = await base44.entities.Tariff.filter({ is_active: true });
     const tariff = tariffs && tariffs[0] ? tariffs[0] : null;
-    const schedules = await base44.asServiceRole.entities.Schedule.filter({ device_id });
+    const schedules = await base44.entities.Schedule.filter({ device_id });
     const schedule = schedules && schedules[0] ? schedules[0] : null;
 
     const mode = (schedule && schedule.mode) || "self_use";
@@ -65,13 +61,12 @@ export default async function(req) {
     const chargeOffPeak = schedule ? schedule.charge_from_grid_off_peak : true;
     const dischargePeak = schedule ? schedule.discharge_during_peak : true;
 
-    // Typical home load profile (W) by hour - a representative UK domestic curve
     const loadProfile = [350,300,280,270,300,400,600,800,700,550,450,420,480,500,520,560,700,1100,1600,1800,1500,1100,800,500];
 
     const plan = [];
     let soc = device.battery_level || minSoc;
-    let savingsP = 0; // pence
-    let baselineP = 0; // pence
+    let savingsP = 0;
+    let baselineP = 0;
     const capacityWh = device.battery_capacity_wh || 5120;
 
     for (let hour = 0; hour < 24; hour++) {
@@ -89,7 +84,6 @@ export default async function(req) {
         action = "charge_grid";
         const neededSoc = maxSoc - soc;
         const neededWh = (neededSoc / 100) * capacityWh;
-        // assume 1.5kW charge rate
         const chargeWh = Math.min(neededWh, 1500);
         batteryDeltaSoc = (chargeWh / capacityWh) * 100;
         soc = Math.min(maxSoc, soc + batteryDeltaSoc);
@@ -136,13 +130,15 @@ export default async function(req) {
 
     let applied = false;
     if (apply) {
-      await base44.asServiceRole.entities.Schedule.updateMany({ device_id }, { $set: { applied: true } }).catch(() => {});
+      if (schedule) {
+        await base44.entities.Schedule.update(schedule.id, { applied: true }).catch(() => {});
+      }
       const update = {
         charging_mode: mode === "backup" ? "backup" : (chargeOffPeak && dischargePeak ? "time_of_use" : "self_use"),
         backup_reserve: minSoc,
         last_sync: new Date().toISOString(),
       };
-      await base44.asServiceRole.entities.Device.update(device_id, update);
+      await base44.entities.Device.update(device_id, update);
       applied = true;
     }
 

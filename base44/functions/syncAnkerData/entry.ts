@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from "base44:runtime";
 import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
+import { getAnkerCreds } from "../../shared/userIntegration.ts";
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -30,12 +30,10 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const email = secrets.get("ANKER_EMAIL");
-    const password = secrets.get("ANKER_PASSWORD");
-    const country = secrets.get("ANKER_COUNTRY");
-    if (!email || !password || !country) {
-      return Response.json({ error: 'Anker credentials not configured.' }, { status: 400 });
-    }
+    let creds;
+    try { creds = await getAnkerCreds(base44); }
+    catch (e) { return Response.json({ error: e.message }, { status: 400 }); }
+    const { email, password, country } = creds;
 
     const base = serverForCountry(country);
     let auth;
@@ -61,14 +59,12 @@ export default async function(req) {
       const siteId = s.site_id;
       if (!siteId) continue;
 
-      // HES system running info (status, savings, generation, battery count, mode)
       let running = {};
       try {
         const r = await ankerRequest(base, ENDPOINTS.systemRunningInfo, { siteId }, auth, country);
         running = (r && r.data) || {};
       } catch (e) { running = {}; }
 
-      // HES energy statistics per source for today (Wh)
       async function stats(source) {
         try {
           const r = await ankerRequest(base, ENDPOINTS.energyStatistics, { siteId, sourceType: source, dateType: "day", start: today, end: today }, auth, country);
@@ -80,15 +76,13 @@ export default async function(req) {
       const grid = await stats("grid");
       const hes = await stats("hes");
 
-      // Today's totals (kWh -> Wh)
       const solarTodayWh = kwhToWh(solar.totalEnergy);
       const homeTodayWh = kwhToWh(home.totalEnergy);
       const gridImportWh = kwhToWh(grid.totalImportedEnergy);
       const gridExportWh = kwhToWh(grid.totalExportedEnergy);
-      const battChargeWh = kwhToWh(hes.totalImportedEnergy);     // battery charged
-      const battDischargeWh = kwhToWh(hes.totalExportedEnergy);  // battery discharged to home
+      const battChargeWh = kwhToWh(hes.totalImportedEnergy);
+      const battDischargeWh = kwhToWh(hes.totalExportedEnergy);
 
-      // Live power now (kW -> W): battery positive = discharging, grid positive = importing
       const solarLiveW = liveW(solar);
       const homeLiveW = liveW(home);
       const gridLiveW = liveW(grid);
@@ -124,10 +118,11 @@ export default async function(req) {
         last_sync: now,
       };
 
-      const existing = await base44.asServiceRole.entities.Device.filter({ site_id: siteId });
+      // User context (RLS-scoped to this caller) — only their own devices match.
+      const existing = await base44.entities.Device.filter({ site_id: siteId });
       let devId;
       if (existing && existing.length) {
-        await base44.asServiceRole.entities.Device.update(existing[0].id, record);
+        await base44.entities.Device.update(existing[0].id, record);
         devId = existing[0].id;
       } else {
         const created = await base44.entities.Device.create(record);

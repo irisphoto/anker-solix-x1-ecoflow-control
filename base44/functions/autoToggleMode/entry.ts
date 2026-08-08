@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from "base44:runtime";
 import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
+import { getAnkerCreds } from "../../shared/userIntegration.ts";
 
 import { toMin, currentMinutes, inWindow } from "../../shared/tariffTime.ts";
 
@@ -24,20 +24,18 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return Response.json({ error: "Forbidden: admin only" }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dry_run === true;
 
-    // Active tariff
-    const tariffs = await base44.asServiceRole.entities.Tariff.filter({ is_active: true });
+    // Caller's own tariff + device (RLS-scoped user context).
+    const tariffs = await base44.entities.Tariff.filter({ is_active: true });
     const tariff = tariffs && tariffs[0];
-    if (!tariff) return Response.json({ error: "No active tariff configured." }, { status: 400 });
+    if (!tariff) return Response.json({ error: "No active tariff configured. Sync your Octopus tariff first." }, { status: 400 });
 
-    // Primary device
-    const devices = await base44.asServiceRole.entities.Device.list("-last_sync", 1);
+    const devices = await base44.entities.Device.list("-last_sync", 1);
     const device = devices && devices[0];
-    if (!device) return Response.json({ error: "No device found. Sync from Anker cloud first." }, { status: 400 });
+    if (!device) return Response.json({ error: "No device found. Add your Anker details in Settings and sync." }, { status: 400 });
 
     const decision = decideMode(tariff);
     const targetMode = decision.mode;
@@ -58,11 +56,10 @@ export default async function (req) {
 
     if (dryRun) return Response.json({ success: true, ...summary });
 
-    // Push to Anker cloud
-    const email = secrets.get("ANKER_EMAIL");
-    const password = secrets.get("ANKER_PASSWORD");
-    const country = secrets.get("ANKER_COUNTRY");
-    if (!email || !password || !country) return Response.json({ error: "Anker credentials not configured." }, { status: 400 });
+    let creds;
+    try { creds = await getAnkerCreds(base44); }
+    catch (e) { return Response.json({ error: e.message, ...summary }, { status: 400 }); }
+    const { email, password, country } = creds;
 
     const base = serverForCountry(country);
     let auth;
@@ -85,9 +82,8 @@ export default async function (req) {
       remoteError = e.message;
     }
 
-    // Persist locally (app mirrors the requested state)
     if (!remoteError) {
-      await base44.asServiceRole.entities.Device.update(device.id, {
+      await base44.entities.Device.update(device.id, {
         charging_mode: targetMode,
         backup_reserve: backupReserve,
         last_sync: new Date().toISOString(),

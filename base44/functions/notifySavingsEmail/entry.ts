@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 const THRESHOLD_GBP = 1.0;
-const RECIPIENT_EMAIL = "irisphoto@hotmail.com";
 const TIMEZONE = "Europe/London";
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
@@ -13,23 +12,29 @@ function localNow() {
   }).format(new Date());
 }
 
+// Daily savings email. Runs on the calling user's own data (RLS-scoped user
+// context) and is sent to that user's registered email address.
+// (Scheduled workflows run as the app owner, so this covers the owner today;
+// per-user scheduled automation is a planned enhancement.)
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    // Scheduled runs have no app user, but auth.me() returns the owner in this app's setup.
-    const user = await base44.auth.me().catch(() => null);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: "No user found." }, { status: 400 });
 
-    const devices = await base44.asServiceRole.entities.Device.list("-last_sync", 1);
+    const devices = await base44.entities.Device.list("-last_sync", 1);
     const device = devices && devices[0];
     if (!device) return Response.json({ error: "No device found." }, { status: 400 });
 
-    const tariffs = await base44.asServiceRole.entities.Tariff.filter({ is_active: true });
+    const tariffs = await base44.entities.Tariff.filter({ is_active: true });
     const tariff = tariffs && tariffs[0];
 
-    // Daily battery savings = battery discharge (Wh) -> kWh * peak rate (p) -> GBP
     const dischargeKwh = num(device.battery_discharge_wh) / 1000;
     const peakRate = tariff ? num(tariff.peak_rate) : 0;
     const savingsGbp = +(dischargeKwh * peakRate / 100).toFixed(2);
+
+    const recipient = user.email;
 
     const result = {
       device: device.name,
@@ -39,7 +44,7 @@ export default async function (req) {
       threshold_gbp: THRESHOLD_GBP,
       triggered: false,
       notified: false,
-      recipient: RECIPIENT_EMAIL,
+      recipient,
     };
 
     if (savingsGbp < THRESHOLD_GBP) {
@@ -63,7 +68,7 @@ export default async function (req) {
 
     try {
       await base44.integrations.Core.SendEmail({
-        to: RECIPIENT_EMAIL,
+        to: recipient,
         subject,
         body,
         from_name: "EcoFlow Control",
