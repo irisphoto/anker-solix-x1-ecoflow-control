@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Play, CheckCircle2, TrendingUp } from "lucide-react";
 import EnergyChart from "@/components/EnergyChart";
+import AiOptimizationCard from "@/components/AiOptimizationCard";
 
 const MODES = [
   { value: "self_use", label: "Self-use" },
@@ -103,6 +104,8 @@ export default function Optimization() {
         <h1 className="text-2xl font-heading font-bold text-foreground">Smart Optimization</h1>
         <p className="text-sm text-muted-foreground">Tariff-aware charging to maximize savings on {device.name}</p>
       </div>
+
+      <AiOptimizationCard device={device} />
 
       {tariff ? (
         <Card>
