@@ -183,6 +183,14 @@ export default function Dashboard() {
           )}
         </>
       )}
+
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-4 text-xs text-muted-foreground border-t border-border/60">
+        <span>Using this app is subject to our</span>
+        <Link to="/terms" className="font-medium text-primary hover:underline">Terms &amp; Conditions</Link>
+        <span>and</span>
+        <Link to="/privacy-policy" className="font-medium text-primary hover:underline">Privacy Policy</Link>
+        <span>· Anker SOLIX and Octopus Energy are trademarks of their respective owners; this app is not affiliated with or endorsed by them.</span>
+      </div>
     </div>
   );
 }
