@@ -1,0 +1,45 @@
+{
+  "name": "Daily Savings Email Alert",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "daily_savings_email_alert",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "alert": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifySavingsEmail",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send savings alert email",
+            "description": "Emails you when daily battery savings exceed \u00a31.00"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Every evening, checks today's battery savings and emails philsturdevant@icloud.com if they exceed \u00a31.00.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 21 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}
