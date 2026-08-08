@@ -9,6 +9,7 @@ import BatteryGauge from "@/components/BatteryGauge";
 import SystemStatus from "@/components/SystemStatus";
 import FlowMeter from "@/components/FlowMeter";
 import SavingsCard from "@/components/SavingsCard";
+import QuickModeSwitch from "@/components/QuickModeSwitch";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -104,6 +105,8 @@ export default function Dashboard() {
           <SystemStatus device={device} />
 
           <SavingsCard device={device} />
+
+          <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
 
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="md:col-span-2">
