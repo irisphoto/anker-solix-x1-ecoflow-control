@@ -1,0 +1,45 @@
+{
+  "name": "Auto Battery Mode Toggle",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_battery_mode_toggle",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "toggle": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "autoToggleMode",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Toggle battery mode",
+            "description": "Peak \u2192 cost-saving, off-peak \u2192 backup"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Every 30 minutes, switches the Anker SOLIX X1 between cost-saving (peak/standard) and backup (off-peak) modes based on the active tariff's peak and off-peak windows.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}
