@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sun, Home, Battery, Cable, RefreshCw, Zap, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import PowerFlow from "@/components/PowerFlow";
 import BatteryGauge from "@/components/BatteryGauge";
+import SystemStatus from "@/components/SystemStatus";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -98,6 +99,8 @@ export default function Dashboard() {
         </Card>
       ) : (
         <>
+          <SystemStatus device={device} />
+
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="md:col-span-2">
               <CardHeader className="pb-2">
