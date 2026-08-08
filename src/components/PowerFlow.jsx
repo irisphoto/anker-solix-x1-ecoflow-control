@@ -1,5 +1,5 @@
 import React from "react";
-import { Sun, Home, Battery, Cable } from "lucide-react";
+import { Sun, Home, Battery, Cable, Car } from "lucide-react";
 
 function FlowArrow({ from, to, power, color, active }) {
   const dx = to.x - from.x;
@@ -29,11 +29,12 @@ function FlowArrow({ from, to, power, color, active }) {
   );
 }
 
-export default function PowerFlow({ solar = 0, home = 0, battery = 0, grid = 0 }) {
+export default function PowerFlow({ solar = 0, home = 0, battery = 0, grid = 0, evCharger = 0 }) {
   const solarPos = { x: 150, y: 40 };
   const batteryPos = { x: 40, y: 200 };
   const homePos = { x: 150, y: 200 };
   const gridPos = { x: 260, y: 200 };
+  const evPos = { x: 150, y: 295 };
 
   const batteryCharging = battery < 0;
   const batteryPower = Math.abs(battery);
@@ -42,7 +43,7 @@ export default function PowerFlow({ solar = 0, home = 0, battery = 0, grid = 0 }
 
   return (
     <div className="w-full flex justify-center">
-      <svg viewBox="0 0 300 260" className="w-full max-w-sm">
+      <svg viewBox="0 0 300 360" className="w-full max-w-sm">
         <defs>
           <marker id="arr" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
             <path d="M0,0 L6,3 L0,6 Z" fill="currentColor" />
@@ -64,12 +65,15 @@ export default function PowerFlow({ solar = 0, home = 0, battery = 0, grid = 0 }
         ) : (
           <FlowArrow from={homePos} to={gridPos} power={gridPower} color="hsl(217 91% 55%)" active={gridPower > 0} />
         )}
+        {/* Home -> EV Charger */}
+        <FlowArrow from={homePos} to={evPos} power={evCharger} color="hsl(280 65% 55%)" active={evCharger > 0} />
 
         {/* Nodes */}
         <Node pos={solarPos} icon={Sun} label="Solar" value={`${Math.round(solar)} W`} color="hsl(38 92% 50%)" />
         <Node pos={batteryPos} icon={Battery} label="Battery" value={batteryCharging ? "charging" : "discharging"} color="hsl(152 62% 40%)" />
         <Node pos={homePos} icon={Home} label="Home" value={`${Math.round(home)} W`} color="hsl(var(--foreground))" />
         <Node pos={gridPos} icon={Cable} label="Grid" value={gridImporting ? "import" : "export"} color="hsl(217 91% 55%)" />
+        <Node pos={evPos} icon={Car} label="EV Charger" value={`${Math.round(evCharger)} W`} color="hsl(280 65% 55%)" />
       </svg>
     </div>
   );

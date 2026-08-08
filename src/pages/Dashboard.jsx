@@ -116,6 +116,7 @@ export default function Dashboard() {
                   home={device.home_usage_w}
                   battery={device.battery_power_w}
                   grid={device.grid_power_w}
+                  evCharger={device.ev_charger_power_w || 0}
                 />
               </CardContent>
             </Card>

@@ -48,6 +48,10 @@
       "type": "number",
       "default": 0
     },
+    "ev_charger_power_w": {
+      "type": "number",
+      "default": 0
+    },
     "solar_today_wh": {
       "type": "number",
       "default": 0
