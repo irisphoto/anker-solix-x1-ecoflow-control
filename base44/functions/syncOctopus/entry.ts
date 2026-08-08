@@ -136,18 +136,18 @@ export default async function(req) {
       tariffId = t.id;
     }
 
-    // 4. Half-hourly consumption — fetch newest ~7 days (data often lags a day or two)
+    // 4. Half-hourly consumption — backfill ALL available smart-meter history
     const devices = await base44.asServiceRole.entities.Device.list("-last_sync", 1);
     const deviceId = devices && devices[0] && devices[0].id;
     let stored = 0;
     if (deviceId) {
       let consumption = [];
-      let nextPath = `/electricity-meter-points/${mpan}/meters/${serial}/consumption/?page_size=100&order_by=-period`;
+      const periodFrom = new Date(Date.now() - 730 * 24 * 3600 * 1000).toISOString();
+      let nextPath = `/electricity-meter-points/${mpan}/meters/${serial}/consumption/?page_size=25000&order_by=period&period_from=${periodFrom}`;
       let guard = 0;
-      while (nextPath && guard < 5) {
+      while (nextPath && guard < 20) {
         const page = await octopusGet(nextPath);
         consumption = consumption.concat(page.results || []);
-        if (!page.results || page.results.length < 100) break;
         nextPath = page.next ? String(page.next).replace(API_BASE, "") : null;
         guard++;
       }
@@ -176,10 +176,10 @@ export default async function(req) {
           source: "octopus",
         };
       });
-      if (records.length) {
-        await base44.entities.EnergyReading.bulkCreate(records);
-        stored = records.length;
+      for (let i = 0; i < records.length; i += 500) {
+        await base44.entities.EnergyReading.bulkCreate(records.slice(i, i + 500));
       }
+      stored = records.length;
     }
 
     return Response.json({

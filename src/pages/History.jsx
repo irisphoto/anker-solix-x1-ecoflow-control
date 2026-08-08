@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LineChart as ChartIcon, Zap } from "lucide-react";
 import EnergyChart from "@/components/EnergyChart";
+import ConsumptionTrendChart from "@/components/ConsumptionTrendChart";
 
 export default function History() {
   const [devices, setDevices] = React.useState([]);
@@ -12,7 +13,7 @@ export default function History() {
     const d = await base44.entities.Device.list("-last_sync", 50).catch(() => []);
     setDevices(d || []);
     if (d && d[0]) {
-      const r = await base44.entities.EnergyReading.filter({ device_id: d[0].id }, "-timestamp", 96).catch(() => []);
+      const r = await base44.entities.EnergyReading.filter({ device_id: d[0].id }, "-timestamp", 2500).catch(() => []);
       setReadings(r || []);
     }
   };
@@ -41,13 +42,17 @@ export default function History() {
     { solar: 0, home: 0, grid: 0 }
   );
 
-  const octoKwh = octo.reduce((s, r) => s + ((Number(r.grid_power_w) || 0) * 0.5 / 1000), 0);
-  const octoChart = [...octo]
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-    .map((r) => ({
-      hour: new Date(r.timestamp).getHours(),
-      consumption_w: Number(r.grid_power_w) || 0,
-    }));
+  const octoSorted = [...octo].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const octoKwh = octoSorted.reduce((s, r) => s + ((Number(r.grid_power_w) || 0) * 0.5 / 1000), 0);
+  const byDay = {};
+  for (const r of octoSorted) {
+    const key = new Date(r.timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    byDay[key] = (byDay[key] || 0) + (Number(r.grid_power_w) || 0) * 0.5 / 1000;
+  }
+  const octoTrend = Object.entries(byDay).map(([label, kwh]) => ({ label, kwh: Number(kwh.toFixed(2)) }));
+  const octoRange = octoSorted.length
+    ? `${new Date(octoSorted[0].timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} – ${new Date(octoSorted[octoSorted.length - 1].timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}`
+    : "";
 
   return (
     <div className="space-y-6">
@@ -87,8 +92,11 @@ export default function History() {
 
           {octo.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">Octopus grid import</CardTitle></CardHeader>
-              <CardContent><EnergyChart data={octoChart} height={260} /></CardContent>
+              <CardHeader>
+                <CardTitle className="text-base">Daily grid import trend</CardTitle>
+                {octoRange && <p className="text-xs text-muted-foreground mt-1">{octoRange} · {octoSorted.length} half-hour readings</p>}
+              </CardHeader>
+              <CardContent><ConsumptionTrendChart data={octoTrend} height={280} /></CardContent>
             </Card>
           )}
         </>
