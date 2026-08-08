@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 const THRESHOLD_GBP = 1.0;
-const RECIPIENT_EMAIL = "philsturdevant@icloud.com";
+const RECIPIENT_EMAIL = "irisphoto@hotmail.com";
 const TIMEZONE = "Europe/London";
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
