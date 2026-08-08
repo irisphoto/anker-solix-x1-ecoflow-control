@@ -54,9 +54,15 @@ export default function SystemStatus({ device }) {
         >
           <Icon className="w-6 h-6" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-base font-heading font-semibold text-foreground">{config.title}</div>
           <div className="text-sm text-muted-foreground">{config.desc}</div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-3xl font-heading font-bold text-foreground tabular-nums leading-none">
+            {Math.round(device?.home_usage_w ?? 0)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">Watts now</div>
         </div>
       </CardContent>
     </Card>
