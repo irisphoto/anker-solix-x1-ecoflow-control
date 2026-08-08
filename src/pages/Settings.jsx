@@ -56,33 +56,37 @@ export default function Settings() {
 
   const ankerConfigured = !!(config && config.anker_email && config.anker_password && config.anker_country);
   const octoConfigured = !!(config && config.octopus_api_key && config.octopus_account_number);
+  const ankerReady = ankerConfigured || (!!ankerEmail.trim() && !!ankerPassword.trim());
+  const octoReady = octoConfigured || (!!octoAccount.trim() && !!octoKey.trim());
+
+  // Persist the current form to the user's own UserIntegration record (creates it on first save).
+  const persist = async () => {
+    const payload = {
+      anker_email: ankerEmail.trim(),
+      anker_country: ankerCountry,
+      octopus_account_number: octoAccount.trim(),
+    };
+    if (ankerPassword.trim()) payload.anker_password = ankerPassword.trim();
+    if (octoKey.trim()) payload.octopus_api_key = octoKey.trim();
+    if (config && config.id) {
+      await base44.entities.UserIntegration.update(config.id, payload);
+    } else {
+      await base44.entities.UserIntegration.create(payload);
+    }
+    const list = await base44.entities.UserIntegration.list("-created_date", 1);
+    const cfg = list && list[0] ? list[0] : null;
+    setConfig(cfg);
+    setAnkerPassword("");
+    setOctoKey("");
+    return cfg;
+  };
 
   const save = async () => {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const payload = {
-        anker_email: ankerEmail.trim(),
-        anker_country: ankerCountry,
-        octopus_account_number: octoAccount.trim(),
-      };
-      // Only overwrite secrets when the user typed a new value.
-      if (ankerPassword.trim()) payload.anker_password = ankerPassword.trim();
-      if (octoKey.trim()) payload.octopus_api_key = octoKey.trim();
-
-      let saved;
-      if (config && config.id) {
-        saved = await base44.entities.UserIntegration.update(config.id, payload);
-        setSaveMsg({ ok: true, text: "Your details have been saved." });
-      } else {
-        saved = await base44.entities.UserIntegration.create(payload);
-        setSaveMsg({ ok: true, text: "Your details have been saved." });
-      }
-      // Refresh config so configured badges update (re-fetch, keeping secrets server-side).
-      const list = await base44.entities.UserIntegration.list("-created_date", 1);
-      setConfig(list && list[0] ? list[0] : null);
-      setAnkerPassword("");
-      setOctoKey("");
+      await persist();
+      setSaveMsg({ ok: true, text: "Your details have been saved." });
     } catch (e) {
       setSaveMsg({ ok: false, text: e.message || "Could not save your details." });
     }
@@ -93,6 +97,12 @@ export default function Settings() {
     setSyncing(true);
     setMsg(null);
     try {
+      const cfg = await persist();
+      if (!cfg || !cfg.anker_email || !cfg.anker_password) {
+        setMsg({ ok: false, text: "Enter your Anker email and password first." });
+        setSyncing(false);
+        return;
+      }
       const res = await base44.functions.invoke("syncAnkerData", {});
       if (res.data && res.data.success) {
         setMsg({ ok: true, text: `Connected as ${res.data.auth_user || "Anker user"}. Found ${res.data.site_count} site(s), synced ${res.data.devices_synced} device(s).` });
@@ -109,6 +119,12 @@ export default function Settings() {
     setOctoSyncing(true);
     setOctoMsg(null);
     try {
+      const cfg = await persist();
+      if (!cfg || !cfg.octopus_api_key || !cfg.octopus_account_number) {
+        setOctoMsg({ ok: false, text: "Enter your Octopus API key and account number first." });
+        setOctoSyncing(false);
+        return;
+      }
       const res = await base44.functions.invoke("syncOctopus", {});
       if (res.data && res.data.success) {
         setOctoMsg({
@@ -172,7 +188,7 @@ export default function Settings() {
               {ankerConfigured ? <CheckCircle2 className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
               {ankerConfigured ? "Anker connected" : "Anker not configured"}
             </Badge>
-            <Button size="sm" onClick={testConnection} disabled={syncing || !ankerConfigured}>
+            <Button size="sm" onClick={testConnection} disabled={syncing || !ankerReady}>
               <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
               {syncing ? "Testing…" : "Test & sync connection"}
             </Button>
@@ -215,7 +231,7 @@ export default function Settings() {
               {octoConfigured ? <CheckCircle2 className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
               {octoConfigured ? "Octopus connected" : "Octopus not configured"}
             </Badge>
-            <Button size="sm" onClick={syncOctopus} disabled={octoSyncing || !octoConfigured}>
+            <Button size="sm" onClick={syncOctopus} disabled={octoSyncing || !octoReady}>
               <RefreshCw className={`w-4 h-4 mr-2 ${octoSyncing ? "animate-spin" : ""}`} />
               {octoSyncing ? "Syncing…" : "Sync Octopus tariff & consumption"}
             </Button>
