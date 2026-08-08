@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
-import { getAnkerCreds } from "../../shared/userIntegration.ts";
+import { createAnkerSession, ENDPOINTS } from "../../shared/ankerClient.ts";
 
 import { toMin, currentMinutes, inWindow } from "../../shared/tariffTime.ts";
 
@@ -72,25 +71,19 @@ export default async function (req) {
 
     let applied = false, remoteResult = null, remoteError = null;
     if (!modeUnchanged) {
-      let creds;
-      try { creds = await getAnkerCreds(base44); }
-      catch (e) { return Response.json({ error: e.message, ...summary }, { status: 400 }); }
-      const { email, password, country } = creds;
-
-      const base = serverForCountry(country);
-      let auth;
-      try {
-        auth = await ankerAuthenticate(base, email, password, country);
-      } catch (e) {
-        return Response.json({ error: "Anker authentication failed: " + e.message, ...summary }, { status: 502 });
+      let anker;
+      try { anker = await createAnkerSession(base44); }
+      catch (e) {
+        const status = e.code === "CREDENTIALS_MISSING" ? 400 : 502;
+        return Response.json({ error: e.message, ...summary }, { status });
       }
       try {
-        remoteResult = await ankerRequest(base, ENDPOINTS.setDeviceParm, {
+        remoteResult = await anker.request(ENDPOINTS.setDeviceParm, {
           site_id: device.site_id,
           param_type: 1,
           charging_type: desiredMode,
           backup_reserve: Number(device.backup_reserve || 20),
-        }, auth, country);
+        });
         applied = true;
       } catch (e) {
         remoteError = e.message;
