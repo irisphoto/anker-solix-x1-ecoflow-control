@@ -4,11 +4,24 @@ import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "..
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
-function wh(v, unit) {
-  const n = num(v);
-  const u = String(unit || "").toLowerCase();
-  if (u === "kwh") return n * 1000;
-  return n; // assume Wh
+function kwhToWh(v) { return num(v) * 1000; }      // kWh -> Wh
+function kwToW(v) { return num(v) * 1000; }          // kW -> W
+// Most recent real (non-placeholder) power reading from a stats `power[]` series, in W.
+function liveW(statsObj) {
+  const arr = statsObj && statsObj.power ? statsObj.power : [];
+  let picked = null;
+  for (const p of arr) {
+    const pi = (p.powerInfos || [])[0];
+    if (pi && !pi.isFix) picked = pi;
+  }
+  return picked ? kwToW(picked.value) : 0;
+}
+// Most recent real (non-placeholder) battery charge level (%).
+function batteryPct(hesObj) {
+  const arr = Array.isArray(hesObj && hesObj.chargeLevel) ? hesObj.chargeLevel : [];
+  let picked = null;
+  for (const c of arr) { if (!c.isFix) picked = c; }
+  return picked ? num(picked.value) : 0;
 }
 
 export default async function(req) {
@@ -43,7 +56,6 @@ export default async function(req) {
     let upserted = 0;
     const now = new Date().toISOString();
     const today = todayStr();
-    let debugRaw = null;
 
     for (const s of siteList) {
       const siteId = s.site_id;
@@ -54,8 +66,7 @@ export default async function(req) {
       try {
         const r = await ankerRequest(base, ENDPOINTS.systemRunningInfo, { siteId }, auth, country);
         running = (r && r.data) || {};
-        if (!debugRaw) debugRaw = { running };
-      } catch (e) { if (!debugRaw) debugRaw = { runningError: e.message }; }
+      } catch (e) { running = {}; }
 
       // HES energy statistics per source for today (Wh)
       async function stats(source) {
@@ -68,14 +79,21 @@ export default async function(req) {
       const home = await stats("home");
       const grid = await stats("grid");
       const hes = await stats("hes");
-      if (debugRaw && !debugRaw.solar) debugRaw.solar = solar;
 
-      const solarToday = wh(solar.solar_total || solar.charge_total, solar.power_unit || solar.charge_unit);
-      const homeToday = wh(home.home_usage_total, home.power_unit);
-      const gridImport = wh(grid.grid_imported_total, grid.power_unit);
-      const gridExport = wh(grid.solar_to_grid_total, grid.power_unit);
-      const battCharge = wh(hes.charge_total, hes.charge_unit || hes.power_unit);
-      const battDischarge = wh(hes.discharge_total, hes.discharge_unit || hes.power_unit);
+      // Today's totals (kWh -> Wh)
+      const solarTodayWh = kwhToWh(solar.totalEnergy);
+      const homeTodayWh = kwhToWh(home.totalEnergy);
+      const gridImportWh = kwhToWh(grid.totalImportedEnergy);
+      const gridExportWh = kwhToWh(grid.totalExportedEnergy);
+      const battChargeWh = kwhToWh(hes.totalImportedEnergy);     // battery charged
+      const battDischargeWh = kwhToWh(hes.totalExportedEnergy);  // battery discharged to home
+
+      // Live power now (kW -> W): battery positive = discharging, grid positive = importing
+      const solarLiveW = liveW(solar);
+      const homeLiveW = liveW(home);
+      const gridLiveW = liveW(grid);
+      const battLiveW = liveW(hes);
+      const battLevel = batteryPct(hes);
 
       const siteName = s.site_name || `Site ${siteId.slice(0, 8)}`;
       const connected = running.connected === true || running.connected === "true";
@@ -86,19 +104,19 @@ export default async function(req) {
         name: siteName,
         model: running.mainDeviceModel || "X1",
         status: connected ? "online" : "offline",
-        battery_level: 0,
+        battery_level: battLevel,
         battery_count: num(running.batCount),
         battery_capacity_wh: 0,
-        solar_power_w: solarToday,
-        home_usage_w: homeToday,
-        battery_power_w: battDischarge - battCharge,
-        grid_power_w: gridImport - gridExport,
-        solar_today_wh: solarToday,
-        home_today_wh: homeToday,
-        grid_import_wh: gridImport,
-        grid_export_wh: gridExport,
-        battery_charge_wh: battCharge,
-        battery_discharge_wh: battDischarge,
+        solar_power_w: solarLiveW,
+        home_usage_w: homeLiveW,
+        battery_power_w: battLiveW,
+        grid_power_w: gridLiveW,
+        solar_today_wh: solarTodayWh,
+        home_today_wh: homeTodayWh,
+        grid_import_wh: gridImportWh,
+        grid_export_wh: gridExportWh,
+        battery_charge_wh: battChargeWh,
+        battery_discharge_wh: battDischargeWh,
         savings_value: num(running.totalSystemSavings),
         savings_currency: running.systemSavingsPriceUnit || "",
         generation_kwh: num(running.totalSystemPowerGeneration),
@@ -121,17 +139,17 @@ export default async function(req) {
         await base44.entities.EnergyReading.create({
           device_id: devId,
           timestamp: now,
-          solar_power_w: solarToday,
-          home_usage_w: homeToday,
-          battery_power_w: battDischarge - battCharge,
-          grid_power_w: gridImport - gridExport,
-          battery_level: 0,
+          solar_power_w: solarLiveW,
+          home_usage_w: homeLiveW,
+          battery_power_w: battLiveW,
+          grid_power_w: gridLiveW,
+          battery_level: battLevel,
           period: "hour",
         });
       } catch { /* ignore */ }
     }
 
-    return Response.json({ success: true, auth_user: auth.nickname || auth.userId, site_count: siteList.length, devices_synced: upserted, debug: debugRaw });
+    return Response.json({ success: true, auth_user: auth.nickname || auth.userId, site_count: siteList.length, devices_synced: upserted });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
