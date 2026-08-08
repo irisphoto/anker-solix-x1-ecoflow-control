@@ -136,13 +136,20 @@ export default async function(req) {
       tariffId = t.id;
     }
 
-    // 4. Half-hourly consumption — backfill ALL available smart-meter history
+    // 4. Half-hourly consumption — incremental: backfill all on first run, then only new readings
     const devices = await base44.asServiceRole.entities.Device.list("-last_sync", 1);
     const deviceId = devices && devices[0] && devices[0].id;
     let stored = 0;
     if (deviceId) {
+      const latest = await base44.asServiceRole.entities.EnergyReading.filter(
+        { device_id: deviceId, source: "octopus" }, "-timestamp", 1
+      );
+      const lastTs = latest && latest[0] && latest[0].timestamp ? new Date(latest[0].timestamp).getTime() : null;
+      const periodFrom = lastTs
+        ? new Date(lastTs).toISOString()
+        : new Date(Date.now() - 730 * 24 * 3600 * 1000).toISOString();
+
       let consumption = [];
-      const periodFrom = new Date(Date.now() - 730 * 24 * 3600 * 1000).toISOString();
       let nextPath = `/electricity-meter-points/${mpan}/meters/${serial}/consumption/?page_size=25000&order_by=period&period_from=${periodFrom}`;
       let guard = 0;
       while (nextPath && guard < 20) {
@@ -151,15 +158,10 @@ export default async function(req) {
         nextPath = page.next ? String(page.next).replace(API_BASE, "") : null;
         guard++;
       }
+      // Drop the boundary reading already stored (interval_start <= lastTs) to avoid duplicates
       consumption = consumption
-        .filter(c => Number(c.consumption) > 0)
+        .filter(c => Number(c.consumption) > 0 && (!lastTs || new Date(c.interval_start).getTime() > lastTs))
         .sort((a, b) => new Date(a.interval_start) - new Date(b.interval_start));
-
-      // Replace prior Octopus readings for this device to avoid duplicates
-      await base44.asServiceRole.entities.EnergyReading.deleteMany({
-        device_id: deviceId,
-        source: "octopus"
-      });
 
       const records = consumption.map(c => {
         const kwh = Number(c.consumption || 0);
