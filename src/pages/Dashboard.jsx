@@ -116,7 +116,11 @@ export default function Dashboard() {
 
           <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
 
-          <DischargeNowCard device={device} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
+          <DischargeNowCard device={device} onApplied={async (a) => {
+            setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d));
+            // Re-sync shortly after so the live flow diagram reflects the new discharge state.
+            setTimeout(() => sync(), 4000);
+          }} />
 
           <SavingsChart />
 
