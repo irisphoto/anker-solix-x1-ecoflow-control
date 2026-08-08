@@ -100,7 +100,7 @@ export default async function(req) {
         status: connected ? "online" : "offline",
         battery_level: battLevel,
         battery_count: num(running.batCount),
-        battery_capacity_wh: 0,
+        battery_capacity_wh: num(running.batCount) * 5000, // each X1 battery module is 5 kWh
         solar_power_w: solarLiveW,
         home_usage_w: homeLiveW,
         battery_power_w: battLiveW,
