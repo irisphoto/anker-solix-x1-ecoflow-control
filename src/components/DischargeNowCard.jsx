@@ -8,7 +8,7 @@ import { Zap, RotateCcw, Info } from "lucide-react";
 // "Discharge now" = lower the X1 backup-reserve floor so the battery drains to cover home load.
 // The unofficial Anker cloud API has no confirmed forced-grid-export command for the X1,
 // so this releases stored energy for your home, not a timed dump to the grid.
-export default function DischargeNowCard({ device, onApplied }) {
+export default function DischargeNowCard({ device, onApplied, onActiveChange }) {
   const [floor, setFloor] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
@@ -41,12 +41,12 @@ export default function DischargeNowCard({ device, onApplied }) {
   const discharge = async () => {
     const prev = Number(device.backup_reserve ?? 20);
     const ok = await apply(Number(floor));
-    if (ok) setPreviousReserve(prev);
+    if (ok) { setPreviousReserve(prev); onActiveChange?.(true); }
   };
 
   const restore = async () => {
     const ok = await apply(previousReserve);
-    if (ok) setPreviousReserve(null);
+    if (ok) { setPreviousReserve(null); onActiveChange?.(false); }
   };
 
   return (
