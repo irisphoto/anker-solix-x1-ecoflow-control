@@ -36,6 +36,14 @@
         "day"
       ],
       "default": "hour"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "anker",
+        "octopus"
+      ],
+      "default": "anker"
     }
   },
   "required": [

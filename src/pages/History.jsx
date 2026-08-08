@@ -1,7 +1,7 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { LineChart as ChartIcon } from "lucide-react";
+import { LineChart as ChartIcon, Zap } from "lucide-react";
 import EnergyChart from "@/components/EnergyChart";
 
 export default function History() {
@@ -12,7 +12,7 @@ export default function History() {
     const d = await base44.entities.Device.list("-last_sync", 50).catch(() => []);
     setDevices(d || []);
     if (d && d[0]) {
-      const r = await base44.entities.EnergyReading.filter({ device_id: d[0].id }, "-timestamp", 48).catch(() => []);
+      const r = await base44.entities.EnergyReading.filter({ device_id: d[0].id }, "-timestamp", 96).catch(() => []);
       setReadings(r || []);
     }
   };
@@ -20,7 +20,10 @@ export default function History() {
   React.useEffect(() => { load(); }, []);
 
   const device = devices[0];
-  const chartData = readings.map((r) => ({
+  const anker = readings.filter((r) => r.source !== "octopus");
+  const octo = readings.filter((r) => r.source === "octopus");
+
+  const chartData = anker.map((r) => ({
     hour: new Date(r.timestamp).getHours(),
     solar_power_w: r.solar_power_w,
     home_usage_w: r.home_usage_w,
@@ -28,7 +31,7 @@ export default function History() {
     grid_power_w: r.grid_power_w,
   }));
 
-  const totals = readings.reduce(
+  const totals = anker.reduce(
     (acc, r) => {
       acc.solar += r.solar_power_w;
       acc.home += r.home_usage_w;
@@ -37,6 +40,14 @@ export default function History() {
     },
     { solar: 0, home: 0, grid: 0 }
   );
+
+  const octoKwh = octo.reduce((s, r) => s + ((Number(r.grid_power_w) || 0) * 0.5 / 1000), 0);
+  const octoChart = [...octo]
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .map((r) => ({
+      hour: new Date(r.timestamp).getHours(),
+      consumption_w: Number(r.grid_power_w) || 0,
+    }));
 
   return (
     <div className="space-y-6">
@@ -54,15 +65,32 @@ export default function History() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Solar (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.solar)}</div></CardContent></Card>
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Home (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.home)}</div></CardContent></Card>
             <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Grid net (Wh)</div><div className="text-xl font-heading font-semibold text-foreground">{Math.round(totals.grid)}</div></CardContent></Card>
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[hsl(280_65%_55%)]" />
+                <div>
+                  <div className="text-xs text-muted-foreground">Octopus import</div>
+                  <div className="text-xl font-heading font-semibold text-foreground">{octoKwh.toFixed(1)} kWh</div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
           <Card>
             <CardHeader><CardTitle className="text-base">Power flow over time</CardTitle></CardHeader>
             <CardContent><EnergyChart data={chartData} height={320} /></CardContent>
           </Card>
+
+          {octo.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Octopus grid import</CardTitle></CardHeader>
+              <CardContent><EnergyChart data={octoChart} height={260} /></CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

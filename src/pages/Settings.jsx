@@ -3,12 +3,14 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
-import { Cloud, RefreshCw, AlertTriangle, CheckCircle2, LogOut } from "lucide-react";
+import { Cloud, RefreshCw, AlertTriangle, CheckCircle2, LogOut, Zap } from "lucide-react";
 
 export default function Settings() {
   const [user, setUser] = React.useState(null);
   const [syncing, setSyncing] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
+  const [octoSyncing, setOctoSyncing] = React.useState(false);
+  const [octoMsg, setOctoMsg] = React.useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -28,6 +30,25 @@ export default function Settings() {
       setMsg({ ok: false, text: e.message });
     }
     setSyncing(false);
+  };
+
+  const syncOctopus = async () => {
+    setOctoSyncing(true);
+    setOctoMsg(null);
+    try {
+      const res = await base44.functions.invoke("syncOctopus", {});
+      if (res.data && res.data.success) {
+        setOctoMsg({
+          ok: true,
+          text: `Synced tariff: ${res.data.day_rate_p ?? 0}p peak / ${res.data.night_rate_p ?? 0}p off-peak (${res.data.off_peak_window}). Imported ${res.data.consumption_readings} half-hour readings from MPAN ${res.data.mpan}.`
+        });
+      } else {
+        setOctoMsg({ ok: false, text: res.data?.error || "Octopus sync failed." });
+      }
+    } catch (e) {
+      setOctoMsg({ ok: false, text: e.message });
+    }
+    setOctoSyncing(false);
   };
 
   const logout = () => base44.auth.logout();
@@ -69,6 +90,34 @@ export default function Settings() {
           {msg && (
             <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
               {msg.text}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="w-4 h-4" /> Octopus Energy
+          </CardTitle>
+          <CardDescription>
+            Links your Octopus Intelligent Go account to pull your live tariff and half-hourly consumption.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Credentials configured
+            </Badge>
+            <span className="text-xs text-muted-foreground">OCTOPUS_API_KEY · OCTOPUS_ACCOUNT_NUMBER</span>
+          </div>
+          <Button onClick={syncOctopus} disabled={octoSyncing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${octoSyncing ? "animate-spin" : ""}`} />
+            {octoSyncing ? "Syncing…" : "Sync Octopus tariff & consumption"}
+          </Button>
+          {octoMsg && (
+            <div className={`text-sm rounded-lg p-3 ${octoMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+              {octoMsg.text}
             </div>
           )}
         </CardContent>

@@ -22,6 +22,10 @@ export default function EnergyChart({ data = [], height = 280 }) {
             <stop offset="5%" stopColor="hsl(152 62% 40%)" stopOpacity={0.35} />
             <stop offset="95%" stopColor="hsl(152 62% 40%)" stopOpacity={0} />
           </linearGradient>
+          <linearGradient id="gOcto" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(280 65% 55%)" stopOpacity={0.35} />
+            <stop offset="95%" stopColor="hsl(280 65% 55%)" stopOpacity={0} />
+          </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis dataKey="hour" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(h) => `${h}:00`} />
@@ -35,6 +39,7 @@ export default function EnergyChart({ data = [], height = 280 }) {
         <Area type="monotone" dataKey="home_usage_w" name="Home" stroke="hsl(var(--foreground))" fill="url(#gHome)" strokeWidth={2} />
         <Area type="monotone" dataKey="battery_power_w" name="Battery" stroke="hsl(152 62% 40%)" fill="url(#gBatt)" strokeWidth={2} />
         <Area type="monotone" dataKey="grid_power_w" name="Grid" stroke="hsl(217 91% 55%)" fill="url(#gGrid)" strokeWidth={2} />
+        <Area type="monotone" dataKey="consumption_w" name="Grid import" stroke="hsl(280 65% 55%)" fill="url(#gOcto)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );
