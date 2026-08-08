@@ -11,6 +11,7 @@ import SystemStatus from "@/components/SystemStatus";
 import FlowMeter from "@/components/FlowMeter";
 import SavingsCard from "@/components/SavingsCard";
 import QuickModeSwitch from "@/components/QuickModeSwitch";
+import DischargeNowCard from "@/components/DischargeNowCard";
 import SavingsChart from "@/components/SavingsChart";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
@@ -114,6 +115,8 @@ export default function Dashboard() {
           <SavingsCard device={device} />
 
           <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
+
+          <DischargeNowCard device={device} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
 
           <SavingsChart />
 
