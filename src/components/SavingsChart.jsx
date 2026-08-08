@@ -101,18 +101,18 @@ export default function SavingsChart() {
         </div>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className="flex items-center gap-5 mb-3">
-          <div>
-            <div className="text-xs text-muted-foreground">Today</div>
-            <div className="text-xl font-heading font-bold text-foreground">{currency}{today.toFixed(2)}</div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
+          <div className="shrink-0">
+            <div className="text-xs text-muted-foreground whitespace-nowrap">Today</div>
+            <div className="text-xl font-heading font-bold text-foreground whitespace-nowrap">{currency}{today.toFixed(2)}</div>
           </div>
-          <div className="w-px h-8 bg-border" />
-          <div>
-            <div className="text-xs text-muted-foreground">Last 30 days</div>
-            <div className="text-xl font-heading font-bold text-primary">{currency}{monthTotal.toFixed(2)}</div>
+          <div className="w-px h-8 bg-border shrink-0" />
+          <div className="shrink-0">
+            <div className="text-xs text-muted-foreground whitespace-nowrap">Last 30 days</div>
+            <div className="text-xl font-heading font-bold text-primary whitespace-nowrap">{currency}{monthTotal.toFixed(2)}</div>
           </div>
-          <div className="ml-auto hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-            <TrendingDown className="w-3.5 h-3.5 text-primary" /> peak-rate avoidance
+          <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap sm:ml-auto">
+            <TrendingDown className="w-3.5 h-3.5 text-primary shrink-0" /> peak-rate avoidance
           </div>
         </div>
         {loading ? (
