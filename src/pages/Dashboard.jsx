@@ -8,6 +8,7 @@ import PowerFlow from "@/components/PowerFlow";
 import BatteryGauge from "@/components/BatteryGauge";
 import SystemStatus from "@/components/SystemStatus";
 import FlowMeter from "@/components/FlowMeter";
+import SavingsCard from "@/components/SavingsCard";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -101,6 +102,8 @@ export default function Dashboard() {
       ) : (
         <>
           <SystemStatus device={device} />
+
+          <SavingsCard device={device} />
 
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="md:col-span-2">
