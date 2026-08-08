@@ -7,6 +7,7 @@ import { Sun, Home, Battery, Cable, RefreshCw, Zap, ArrowDownRight, ArrowUpRight
 import PowerFlow from "@/components/PowerFlow";
 import BatteryGauge from "@/components/BatteryGauge";
 import SystemStatus from "@/components/SystemStatus";
+import FlowMeter from "@/components/FlowMeter";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -127,6 +128,15 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Battery → Home Flow</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <FlowMeter power={device.battery_power_w < 0 ? 0 : Math.abs(device.battery_power_w)} />
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard icon={Sun} label="Solar" value={`${Math.round(device.solar_power_w)} W`} sub="generating" color="hsl(38 92% 50%)" />
