@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
-import { getAnkerCreds } from "../../shared/userIntegration.ts";
+import { createAnkerSession, ENDPOINTS } from "../../shared/ankerClient.ts";
 
 function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -30,22 +29,18 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    let creds;
-    try { creds = await getAnkerCreds(base44); }
-    catch (e) { return Response.json({ error: e.message }, { status: 400 }); }
-    const { email, password, country } = creds;
-
-    const base = serverForCountry(country);
-    let auth;
+    let anker;
     try {
-      auth = await ankerAuthenticate(base, email, password, country);
+      anker = await createAnkerSession(base44);
     } catch (e) {
-      return Response.json({ error: 'Anker authentication failed: ' + e.message }, { status: 502 });
+      const status = e.code === "CREDENTIALS_MISSING" ? 400 : 502;
+      return Response.json({ error: e.message }, { status });
     }
+    const { request, base, country } = anker;
 
     let sitesData;
     try {
-      sitesData = await ankerRequest(base, ENDPOINTS.siteList, {}, auth, country);
+      sitesData = await request(ENDPOINTS.siteList, {});
     } catch (e) {
       return Response.json({ error: 'Failed to fetch site list: ' + e.message }, { status: 502 });
     }
@@ -61,13 +56,13 @@ export default async function(req) {
 
       let running = {};
       try {
-        const r = await ankerRequest(base, ENDPOINTS.systemRunningInfo, { siteId }, auth, country);
+        const r = await request(ENDPOINTS.systemRunningInfo, { siteId });
         running = (r && r.data) || {};
       } catch (e) { running = {}; }
 
       async function stats(source) {
         try {
-          const r = await ankerRequest(base, ENDPOINTS.energyStatistics, { siteId, sourceType: source, dateType: "day", start: today, end: today }, auth, country);
+          const r = await request(ENDPOINTS.energyStatistics, { siteId, sourceType: source, dateType: "day", start: today, end: today });
           return (r && r.data) || {};
         } catch { return {}; }
       }
@@ -144,7 +139,7 @@ export default async function(req) {
       } catch { /* ignore */ }
     }
 
-    return Response.json({ success: true, auth_user: auth.nickname || auth.userId, site_count: siteList.length, devices_synced: upserted });
+    return Response.json({ success: true, auth_user: anker.auth.nickname || anker.auth.userId, site_count: siteList.length, devices_synced: upserted });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

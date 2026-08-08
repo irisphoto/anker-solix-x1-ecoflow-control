@@ -11,6 +11,15 @@
     "anker_country": {
       "type": "string"
     },
+    "anker_token": {
+      "type": "string"
+    },
+    "anker_gtoken": {
+      "type": "string"
+    },
+    "anker_user_id": {
+      "type": "string"
+    },
     "octopus_api_key": {
       "type": "string"
     },

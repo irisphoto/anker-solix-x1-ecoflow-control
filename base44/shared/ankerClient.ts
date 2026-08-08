@@ -169,6 +169,16 @@ export async function ankerAuthenticate(base, email, password, country) {
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
   if (!resp.ok) throw new Error(`login HTTP ${resp.status}: ${text.slice(0, 300)}`);
 
+  // Anker returns HTTP 200 with an error `code` in the body for failures
+  // (e.g. 100032 "Captcha id empty" when the account is anti-bot flagged).
+  const errCode = data.code != null ? Number(data.code) : 0;
+  if (errCode >= 10000) {
+    if (errCode === 100032) {
+      throw new Error("Anker login blocked by a captcha (anti-bot). This is triggered by too many logins in a short period. Wait a while and retry — syncs now reuse a cached token to avoid repeated logins.");
+    }
+    throw new Error(`login failed (${errCode}): ${data.msg || "unknown error"}`);
+  }
+
   const d = data.data || {};
   const userId = d.user_id || d.userid || "";
   return {
@@ -192,4 +202,63 @@ export async function ankerRequest(base, path, payload, auth, country) {
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
   if (!resp.ok) throw new Error(`${path} HTTP ${resp.status}: ${text.slice(0, 300)}`);
   return data;
+}
+
+function isTokenError(e) {
+  return /token error|HTTP 401/i.test(e.message || "");
+}
+
+// Persist a freshly authenticated token to the caller's UserIntegration record.
+async function persistAuth(base44, integrationId, auth) {
+  try {
+    await base44.entities.UserIntegration.update(integrationId, {
+      anker_token: auth.token,
+      anker_gtoken: auth.gtoken,
+      anker_user_id: auth.userId,
+    });
+  } catch { /* best effort — cache is a convenience */ }
+}
+
+// High-level Anker session for a backend function.
+// Resolves the CALLING user's Anker credentials (RLS-scoped), reuses a cached
+// auth token when present, and only re-authenticates (persisting the new token)
+// when Anker rejects the cached one. Minimising logins avoids Anker's anti-bot
+// captcha and stops kicking the official mobile app session.
+export async function createAnkerSession(base44) {
+  const { getUserIntegration } = await import("./userIntegration.ts");
+  const integration = await getUserIntegration(base44);
+  if (!integration || !integration.anker_email || !integration.anker_password || !integration.anker_country) {
+    const e = new Error("Anker credentials not configured. Add your Anker SOLIX details in Settings.");
+    e.code = "CREDENTIALS_MISSING";
+    throw e;
+  }
+  const country = integration.anker_country;
+  const base = serverForCountry(country);
+  const email = integration.anker_email;
+  const password = integration.anker_password;
+
+  let auth = null;
+  if (integration.anker_token) {
+    auth = { token: integration.anker_token, gtoken: integration.anker_gtoken, userId: integration.anker_user_id };
+  }
+  if (!auth || !auth.token) {
+    auth = await ankerAuthenticate(base, email, password, country);
+    await persistAuth(base44, integration.id, auth);
+  }
+
+  async function request(path, payload) {
+    try {
+      return await ankerRequest(base, path, payload, auth, country);
+    } catch (e) {
+      if (isTokenError(e)) {
+        // Token expired or kicked out — re-authenticate once, persist, retry.
+        auth = await ankerAuthenticate(base, email, password, country);
+        await persistAuth(base44, integration.id, auth);
+        return await ankerRequest(base, path, payload, auth, country);
+      }
+      throw e;
+    }
+  }
+
+  return { request, auth, base, country, integration };
 }

@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { serverForCountry, ankerAuthenticate, ankerRequest, ENDPOINTS } from "../../shared/ankerClient.ts";
-import { getAnkerCreds } from "../../shared/userIntegration.ts";
+import { createAnkerSession, ENDPOINTS } from "../../shared/ankerClient.ts";
 
 // Update a device's charging mode / backup reserve.
 // Uses the *calling user's* own Anker credentials and only acts on a device
@@ -20,18 +19,13 @@ export default async function (req) {
     const device = await base44.entities.Device.get(device_id).catch(() => null);
     if (!device) return Response.json({ error: "Device not found" }, { status: 404 });
 
-    let creds;
-    try { creds = await getAnkerCreds(base44); }
-    catch (e) { return Response.json({ error: e.message }, { status: 400 }); }
-    const { email, password, country } = creds;
-
-    const base = serverForCountry(country);
-    let auth;
-    try {
-      auth = await ankerAuthenticate(base, email, password, country);
-    } catch (e) {
-      return Response.json({ error: "Anker authentication failed: " + e.message }, { status: 502 });
+    let anker;
+    try { anker = await createAnkerSession(base44); }
+    catch (e) {
+      const status = e.code === "CREDENTIALS_MISSING" ? 400 : 502;
+      return Response.json({ error: e.message }, { status });
     }
+    const { request } = anker;
 
     const targetMode = charging_mode || device.charging_mode;
     const targetReserve = backup_reserve != null ? Number(backup_reserve) : Number(device.backup_reserve || 20);
@@ -39,12 +33,12 @@ export default async function (req) {
     let remoteResult = null;
     let remoteError = null;
     try {
-      remoteResult = await ankerRequest(base, ENDPOINTS.setDeviceParm, {
+      remoteResult = await request(ENDPOINTS.setDeviceParm, {
         site_id: device.site_id,
         param_type: 1,
         charging_type: targetMode,
         backup_reserve: targetReserve,
-      }, auth, country);
+      });
     } catch (e) {
       remoteError = e.message;
     }
