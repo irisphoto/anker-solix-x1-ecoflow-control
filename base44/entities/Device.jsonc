@@ -1,0 +1,113 @@
+{
+  "name": "Device",
+  "type": "object",
+  "properties": {
+    "site_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline",
+        "error"
+      ],
+      "default": "offline"
+    },
+    "battery_level": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_count": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_capacity_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "solar_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "home_usage_w": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "grid_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "solar_today_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "home_today_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "grid_import_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "grid_export_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_charge_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_discharge_wh": {
+      "type": "number",
+      "default": 0
+    },
+    "savings_value": {
+      "type": "number",
+      "default": 0
+    },
+    "savings_currency": {
+      "type": "string",
+      "default": ""
+    },
+    "generation_kwh": {
+      "type": "number",
+      "default": 0
+    },
+    "system_mode": {
+      "type": "number",
+      "default": 0
+    },
+    "charging_mode": {
+      "type": "string",
+      "enum": [
+        "self_use",
+        "time_of_use",
+        "backup",
+        "manual"
+      ],
+      "default": "self_use"
+    },
+    "backup_reserve": {
+      "type": "number",
+      "default": 20
+    },
+    "last_sync": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "Schedule",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "self_use",
+        "time_of_use",
+        "backup",
+        "peak_shaving",
+        "off_peak_charge"
+      ],
+      "default": "self_use"
+    },
+    "backup_reserve_percent": {
+      "type": "number",
+      "default": 20
+    },
+    "min_soc": {
+      "type": "number",
+      "default": 10
+    },
+    "max_soc": {
+      "type": "number",
+      "default": 100
+    },
+    "charge_from_grid_off_peak": {
+      "type": "boolean",
+      "default": true
+    },
+    "discharge_during_peak": {
+      "type": "boolean",
+      "default": true
+    },
+    "applied": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -43,6 +43,10 @@ module.exports = {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
+  			solar: 'hsl(var(--solar))',
+  			battery: 'hsl(var(--battery))',
+  			grid: 'hsl(var(--grid))',
+  			home: 'hsl(var(--home))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

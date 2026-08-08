@@ -1,0 +1,44 @@
+{
+  "name": "EnergyReading",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "solar_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "home_usage_w": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "grid_power_w": {
+      "type": "number",
+      "default": 0
+    },
+    "battery_level": {
+      "type": "number",
+      "default": 0
+    },
+    "period": {
+      "type": "string",
+      "enum": [
+        "hour",
+        "day"
+      ],
+      "default": "hour"
+    }
+  },
+  "required": [
+    "device_id"
+  ]
+}

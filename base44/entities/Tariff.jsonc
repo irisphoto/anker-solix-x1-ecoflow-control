@@ -1,0 +1,60 @@
+{
+  "name": "Tariff",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "default": "\u00a3"
+    },
+    "import_rate": {
+      "type": "number",
+      "default": 27.0
+    },
+    "export_rate": {
+      "type": "number",
+      "default": 15.0
+    },
+    "has_off_peak": {
+      "type": "boolean",
+      "default": true
+    },
+    "off_peak_rate": {
+      "type": "number",
+      "default": 9.5
+    },
+    "off_peak_start": {
+      "type": "string",
+      "default": "00:30"
+    },
+    "off_peak_end": {
+      "type": "string",
+      "default": "04:30"
+    },
+    "has_peak": {
+      "type": "boolean",
+      "default": true
+    },
+    "peak_rate": {
+      "type": "number",
+      "default": 35.0
+    },
+    "peak_start": {
+      "type": "string",
+      "default": "16:00"
+    },
+    "peak_end": {
+      "type": "string",
+      "default": "19:00"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
