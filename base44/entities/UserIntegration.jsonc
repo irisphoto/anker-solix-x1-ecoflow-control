@@ -20,6 +20,10 @@
     "anker_user_id": {
       "type": "string"
     },
+    "anker_login_blocked_until": {
+      "type": "string",
+      "format": "date-time"
+    },
     "octopus_api_key": {
       "type": "string"
     },

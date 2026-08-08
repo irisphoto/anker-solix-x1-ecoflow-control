@@ -208,22 +208,44 @@ function isTokenError(e) {
   return /token error|HTTP 401/i.test(e.message || "");
 }
 
-// Persist a freshly authenticated token to the caller's UserIntegration record.
-async function persistAuth(base44, integrationId, auth) {
+// When Anker's anti-bot captcha (100032) blocks a login, repeated attempts
+// only extend the lockout. Persist a "blocked until" timestamp so the session
+// (and the scheduled workflows using it) stop hammering the login endpoint
+// until the block clears on its own — usually within a few hours.
+const LOGIN_BLOCK_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+// Authenticate, persist the fresh token, and clear any prior login block.
+// On a captcha block, record the backoff window instead of returning a token.
+async function loginAndPersist(base44, integration, email, password, country, base) {
+  let auth;
   try {
-    await base44.entities.UserIntegration.update(integrationId, {
+    auth = await ankerAuthenticate(base, email, password, country);
+  } catch (err) {
+    if (/captcha/i.test(err.message || "")) {
+      try {
+        await base44.entities.UserIntegration.update(integration.id, {
+          anker_login_blocked_until: new Date(Date.now() + LOGIN_BLOCK_MS).toISOString(),
+        });
+      } catch { /* best effort */ }
+    }
+    throw err;
+  }
+  try {
+    await base44.entities.UserIntegration.update(integration.id, {
       anker_token: auth.token,
       anker_gtoken: auth.gtoken,
       anker_user_id: auth.userId,
+      anker_login_blocked_until: "",
     });
   } catch { /* best effort — cache is a convenience */ }
+  return auth;
 }
 
 // High-level Anker session for a backend function.
 // Resolves the CALLING user's Anker credentials (RLS-scoped), reuses a cached
 // auth token when present, and only re-authenticates (persisting the new token)
-// when Anker rejects the cached one. Minimising logins avoids Anker's anti-bot
-// captcha and stops kicking the official mobile app session.
+// when Anker rejects the cached one. A prior captcha block is honoured so we
+// don't keep knocking on a locked door.
 export async function createAnkerSession(base44) {
   const { getUserIntegration } = await import("./userIntegration.ts");
   const integration = await getUserIntegration(base44);
@@ -237,13 +259,19 @@ export async function createAnkerSession(base44) {
   const email = integration.anker_email;
   const password = integration.anker_password;
 
+  const blockedUntil = integration.anker_login_blocked_until ? new Date(integration.anker_login_blocked_until) : null;
+  if (blockedUntil && blockedUntil.getTime() > Date.now()) {
+    const e = new Error(`Anker login is temporarily blocked by Anker's anti-bot protection. This clears on its own — please wait until ${blockedUntil.toLocaleString()} and try Sync again.`);
+    e.code = "LOGIN_BLOCKED";
+    throw e;
+  }
+
   let auth = null;
   if (integration.anker_token) {
     auth = { token: integration.anker_token, gtoken: integration.anker_gtoken, userId: integration.anker_user_id };
   }
   if (!auth || !auth.token) {
-    auth = await ankerAuthenticate(base, email, password, country);
-    await persistAuth(base44, integration.id, auth);
+    auth = await loginAndPersist(base44, integration, email, password, country, base);
   }
 
   async function request(path, payload) {
@@ -252,8 +280,7 @@ export async function createAnkerSession(base44) {
     } catch (e) {
       if (isTokenError(e)) {
         // Token expired or kicked out — re-authenticate once, persist, retry.
-        auth = await ankerAuthenticate(base, email, password, country);
-        await persistAuth(base44, integration.id, auth);
+        auth = await loginAndPersist(base44, integration, email, password, country, base);
         return await ankerRequest(base, path, payload, auth, country);
       }
       throw e;

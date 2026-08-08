@@ -22,7 +22,7 @@ export default async function (req) {
     let anker;
     try { anker = await createAnkerSession(base44); }
     catch (e) {
-      const status = e.code === "CREDENTIALS_MISSING" ? 400 : 502;
+      const status = e.code === "CREDENTIALS_MISSING" ? 400 : e.code === "LOGIN_BLOCKED" ? 503 : 502;
       return Response.json({ error: e.message }, { status });
     }
     const { request } = anker;
