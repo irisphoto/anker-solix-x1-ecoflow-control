@@ -64,7 +64,7 @@ export default function DischargeNowCard({ device, onApplied }) {
           <div className="flex items-center gap-2">
             <Label htmlFor="dn-floor" className="text-xs text-muted-foreground">Floor</Label>
             <input
-              id="dn-floor" type="range" min={0} max={50} step={5}
+              id="dn-floor" type="range" min={0} max={20} step={1}
               value={floor} onChange={(e) => setFloor(Number(e.target.value))}
               className="w-32 accent-primary"
             />
