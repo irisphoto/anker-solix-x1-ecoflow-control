@@ -1,0 +1,36 @@
+{
+  "name": "UserIntegration",
+  "type": "object",
+  "properties": {
+    "anker_email": {
+      "type": "string"
+    },
+    "anker_password": {
+      "type": "string"
+    },
+    "anker_country": {
+      "type": "string"
+    },
+    "octopus_api_key": {
+      "type": "string"
+    },
+    "octopus_account_number": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
