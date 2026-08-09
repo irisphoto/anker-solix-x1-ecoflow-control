@@ -1,5 +1,6 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
+import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,23 +89,21 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
   const [charging, setCharging] = React.useState(false);
   const [chargeMsg, setChargeMsg] = React.useState(null);
 
-  // Force the system into charging now, ignoring the price threshold.
+  // Start an EV charge now via Home Assistant (battery-first). The Anker cloud
+  // API has no "start charge" command, so the app fires the user's HA webhook,
+  // which sends the real start command to the charger locally and runs the X1
+  // in self-consumption so the battery powers the car before the grid.
   const chargeNow = async () => {
-    if (!schedule || !schedule.device_id) {
-      setChargeMsg({ ok: false, text: "No device linked to this schedule." });
-      return;
-    }
     setCharging(true);
     setChargeMsg(null);
     try {
-      const res = await base44.functions.invoke("setDeviceParam", {
-        device_id: schedule.device_id,
-        charging_mode: "time_of_use",
+      const res = await base44.functions.invoke("triggerHaEvCharge", {
+        device_id: schedule?.device_id || null,
       });
       if (res.data && res.data.success) {
-        setChargeMsg({ ok: true, text: "Charging now — system forced to time-of-use." });
+        setChargeMsg({ ok: true, text: "Charge started via Home Assistant — battery powers the car first, grid fills the rest." });
       } else {
-        setChargeMsg({ ok: false, text: res.data?.remote_error || res.data?.error || "Could not start charging." });
+        setChargeMsg({ ok: false, text: res.data?.error || "Could not reach Home Assistant." });
       }
     } catch (e) {
       setChargeMsg({ ok: false, text: e.message });
@@ -168,9 +167,9 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
             {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowDownToLine className="w-4 h-4 mr-2" />}
             {running ? "Checking…" : "Run rule now"}
           </Button>
-          <Button size="sm" variant="secondary" onClick={chargeNow} disabled={charging || !schedule || !schedule.device_id}>
+          <Button size="sm" variant="secondary" onClick={chargeNow} disabled={charging || !schedule}>
             {charging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BatteryCharging className="w-4 h-4 mr-2" />}
-            {charging ? "Starting…" : "Charge EV now"}
+            {charging ? "Starting…" : "Charge EV now (battery-first)"}
           </Button>
           {schedule && schedule.ev_last_checked && (
             <span className="text-xs text-muted-foreground">
@@ -184,6 +183,10 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
             {chargeMsg.text}
           </div>
         )}
+
+        <p className="text-[11px] text-muted-foreground">
+          “Charge EV now” fires your Home Assistant webhook (configured in <Link to="/settings" className="text-primary underline">Settings</Link>). Your HA automation should start the charger and set the X1 to self-consumption so the battery powers the car before the grid.
+        </p>
 
         {result && result.error && (
           <div className="text-sm rounded-lg p-3 bg-destructive/10 text-destructive">{result.error}</div>
