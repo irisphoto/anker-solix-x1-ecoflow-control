@@ -270,6 +270,7 @@ export default function Settings() {
             <div className="text-xs text-muted-foreground space-y-1">
               <div>In Home Assistant: create an Automation with a <b>Webhook</b> trigger (webhook ID e.g. <code>anker-export</code>). Expose HA to the internet via Nabu Casa or a tunnel so this app can reach it.</div>
               <div>The webhook receives <code>POST</code> with JSON <code>{`{ "action": "export_to_grid" }`}</code> (plus <code>Authorization: Bearer …</code> if you set a token). The automation action then calls your local Anker X1 Modbus integration to discharge / sell-to-grid.</div>
+              <div>The same webhook also receives <code>{`{ "action": "charge_ev", "priority": "battery_first" }`}</code> from "Charge EV now" — branch on <code>action</code> in your automation: start the EV charger and set the X1 to self-consumption so the battery powers the car before the grid.</div>
             </div>
           </div>
         </CardContent>
