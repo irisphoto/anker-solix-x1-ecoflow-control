@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Car, Loader2, Zap, TrendingDown, ArrowDownToLine } from "lucide-react";
+import { Car, Loader2, Zap, TrendingDown, ArrowDownToLine, BatteryCharging } from "lucide-react";
 
 const TIMEZONE = "Europe/London";
 
@@ -85,6 +85,33 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
     setRunning(false);
   };
 
+  const [charging, setCharging] = React.useState(false);
+  const [chargeMsg, setChargeMsg] = React.useState(null);
+
+  // Force the system into charging now, ignoring the price threshold.
+  const chargeNow = async () => {
+    if (!schedule || !schedule.device_id) {
+      setChargeMsg({ ok: false, text: "No device linked to this schedule." });
+      return;
+    }
+    setCharging(true);
+    setChargeMsg(null);
+    try {
+      const res = await base44.functions.invoke("setDeviceParam", {
+        device_id: schedule.device_id,
+        charging_mode: "time_of_use",
+      });
+      if (res.data && res.data.success) {
+        setChargeMsg({ ok: true, text: "Charging now — system forced to time-of-use." });
+      } else {
+        setChargeMsg({ ok: false, text: res.data?.remote_error || res.data?.error || "Could not start charging." });
+      }
+    } catch (e) {
+      setChargeMsg({ ok: false, text: e.message });
+    }
+    setCharging(false);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -141,12 +168,22 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
             {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowDownToLine className="w-4 h-4 mr-2" />}
             {running ? "Checking…" : "Run rule now"}
           </Button>
+          <Button size="sm" variant="secondary" onClick={chargeNow} disabled={charging || !schedule || !schedule.device_id}>
+            {charging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BatteryCharging className="w-4 h-4 mr-2" />}
+            {charging ? "Starting…" : "Charge EV now"}
+          </Button>
           {schedule && schedule.ev_last_checked && (
             <span className="text-xs text-muted-foreground">
               Last checked {new Date(schedule.ev_last_checked).toLocaleString("en-GB", { timeZone: TIMEZONE })}
             </span>
           )}
         </div>
+
+        {chargeMsg && (
+          <div className={`text-sm rounded-lg p-3 ${chargeMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+            {chargeMsg.text}
+          </div>
+        )}
 
         {result && result.error && (
           <div className="text-sm rounded-lg p-3 bg-destructive/10 text-destructive">{result.error}</div>
