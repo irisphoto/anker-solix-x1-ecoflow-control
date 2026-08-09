@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Home, Battery, Cable, RefreshCw, Zap, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Sun, Home, Battery, RefreshCw, Zap, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import PowerFlow from "@/components/PowerFlow";
 import BatteryGauge from "@/components/BatteryGauge";
 import SystemStatus from "@/components/SystemStatus";
@@ -19,15 +19,35 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: color + "22" }}>
-            <Icon className="w-5 h-5" style={{ color }} />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: color + "22" }}>
+            <Icon className="w-5 h-5 shrink-0" style={{ color }} />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="text-xl font-heading font-semibold text-foreground">{value}</div>
             <div className="text-[11px] text-muted-foreground">{sub}</div>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function HeroStrip({ device }) {
+  const watts = Math.round(device?.home_usage_w ?? 0);
+  return (
+    <Card className="relative overflow-hidden">
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(65% 130% at 50% 0%, hsl(38 95% 55% / 0.18), transparent 70%)" }}
+      />
+      <CardContent className="relative p-6 flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2" style={{ background: "hsl(38 95% 55% / 0.15)" }}>
+          <Zap className="w-6 h-6" style={{ color: "hsl(var(--solar))" }} />
+        </div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Home Draw</div>
+        <div className="text-4xl md:text-5xl font-heading font-bold text-foreground tabular-nums leading-tight">{watts} W</div>
+        <div className="text-xs text-muted-foreground mt-0.5">Real-time consumption</div>
       </CardContent>
     </Card>
   );
@@ -74,24 +94,7 @@ export default function Dashboard() {
   const empty = devices.length === 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Live energy flow from your Anker SOLIX system</p>
-        </div>
-        <Button onClick={sync} disabled={syncing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing…" : "Sync now"}
-        </Button>
-      </div>
-
-      {syncMsg && (
-        <div className={`text-sm rounded-lg p-3 ${syncMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-          {syncMsg.text}
-        </div>
-      )}
-
+    <div className="space-y-5">
       {empty ? (
         <Card>
           <CardContent className="py-16 text-center">
@@ -110,70 +113,94 @@ export default function Dashboard() {
         </Card>
       ) : (
         <>
-          <SystemStatus device={device} />
+          <HeroStrip device={device} />
 
-          <SavingsCard device={device} />
-
-          <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
-
-          <SavingsChart />
-
-          <BatteryFlowChart device={device} />
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{device.name}</CardTitle>
-                  <Badge variant={device.status === "online" ? "default" : "secondary"}>{device.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <PowerFlow
-                  solar={device.solar_power_w}
-                  home={device.home_usage_w}
-                  battery={device.battery_power_w}
-                  grid={device.grid_power_w}
-                  evCharger={device.ev_charger_power_w || 0}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Battery</CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center pt-2">
-                <BatteryGauge level={device.battery_level} capacityWh={device.battery_capacity_wh} />
-              </CardContent>
-            </Card>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-heading font-bold text-foreground">Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Live energy flow from your Anker SOLIX system</p>
+            </div>
+            <Button onClick={sync} disabled={syncing} className="bg-solar text-black hover:bg-solar/90">
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync now"}
+            </Button>
           </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Battery → Home Flow</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <FlowMeter power={device.battery_power_w < 0 ? 0 : Math.abs(device.battery_power_w)} />
-            </CardContent>
-          </Card>
+          {syncMsg && (
+            <div className={`text-sm rounded-lg p-3 ${syncMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+              {syncMsg.text}
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon={Sun} label="Solar" value={`${Math.round(device.solar_power_w)} W`} sub="generating" color="hsl(38 92% 50%)" />
-            <StatCard icon={Home} label="Home" value={`${Math.round(device.home_usage_w)} W`} sub="consuming" color="hsl(var(--foreground))" />
-            <StatCard
-              icon={Battery}
-              label="Battery"
-              value={`${Math.abs(Math.round(device.battery_power_w))} W`}
-              sub={device.battery_power_w < 0 ? "charging" : "discharging"}
-              color="hsl(152 62% 40%)"
-            />
-            <StatCard
-              icon={device.grid_power_w > 0 ? ArrowDownRight : ArrowUpRight}
-              label="Grid"
-              value={`${Math.abs(Math.round(device.grid_power_w))} W`}
-              sub={device.grid_power_w > 0 ? "importing" : "exporting"}
-              color="hsl(217 91% 55%)"
-            />
+          <div className="grid lg:grid-cols-3 gap-4 items-start">
+            <div className="lg:col-span-2 space-y-4">
+              <SystemStatus device={device} />
+
+              <SavingsCard device={device} />
+
+              <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
+
+              <SavingsChart />
+
+              <BatteryFlowChart device={device} />
+            </div>
+
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{device.name}</CardTitle>
+                    <Badge variant={device.status === "online" ? "default" : "secondary"}>{device.status}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <PowerFlow
+                    solar={device.solar_power_w}
+                    home={device.home_usage_w}
+                    battery={device.battery_power_w}
+                    grid={device.grid_power_w}
+                    evCharger={device.ev_charger_power_w || 0}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Battery</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center pt-2">
+                  <BatteryGauge level={device.battery_level} capacityWh={device.battery_capacity_wh} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Battery → Home Flow</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <FlowMeter power={device.battery_power_w < 0 ? 0 : Math.abs(device.battery_power_w)} />
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard icon={Sun} label="Solar" value={`${Math.round(device.solar_power_w)} W`} sub="generating" color="hsl(38 95% 55%)" />
+                <StatCard icon={Home} label="Home" value={`${Math.round(device.home_usage_w)} W`} sub="consuming" color="hsl(var(--home))" />
+                <StatCard
+                  icon={Battery}
+                  label="Battery"
+                  value={`${Math.abs(Math.round(device.battery_power_w))} W`}
+                  sub={device.battery_power_w < 0 ? "charging" : "discharging"}
+                  color="hsl(152 72% 55%)"
+                />
+                <StatCard
+                  icon={device.grid_power_w > 0 ? ArrowDownRight : ArrowUpRight}
+                  label="Grid"
+                  value={`${Math.abs(Math.round(device.grid_power_w))} W`}
+                  sub={device.grid_power_w > 0 ? "importing" : "exporting"}
+                  color="hsl(217 91% 64%)"
+                />
+              </div>
+            </div>
           </div>
 
           {device.last_sync && (

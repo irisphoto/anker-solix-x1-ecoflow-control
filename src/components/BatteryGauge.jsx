@@ -22,7 +22,7 @@ export default function BatteryGauge({ level = 0, size = 140, capacityWh = 0 }) 
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
-            style={{ transition: "stroke-dashoffset 0.8s ease" }}
+            style={{ transition: "stroke-dashoffset 0.8s ease", filter: `drop-shadow(0 0 6px ${color})` }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
