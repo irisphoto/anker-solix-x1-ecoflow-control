@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Home, Battery, RefreshCw, Zap, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Sun, Home, Battery, Zap, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import PowerFlow from "@/components/PowerFlow";
 import BatteryGauge from "@/components/BatteryGauge";
 import SystemStatus from "@/components/SystemStatus";
@@ -57,7 +57,8 @@ export default function Dashboard() {
   const [devices, setDevices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
-  const [syncMsg, setSyncMsg] = React.useState(null);
+  const [lastSyncAt, setLastSyncAt] = React.useState(null);
+  const [liveError, setLiveError] = React.useState(null);
 
   const load = async () => {
     try {
@@ -69,24 +70,29 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  React.useEffect(() => { load(); }, []);
-
-  const sync = async () => {
+  const sync = React.useCallback(async () => {
     setSyncing(true);
-    setSyncMsg(null);
     try {
       const res = await base44.functions.invoke("syncAnkerData", {});
       if (res.data && res.data.success) {
-        setSyncMsg({ ok: true, text: `Synced ${res.data.devices_synced} device(s) from Anker cloud.` });
+        setLastSyncAt(new Date());
+        setLiveError(null);
         await load();
       } else {
-        setSyncMsg({ ok: false, text: res.data?.error || "Sync failed." });
+        setLiveError(res.data?.error || "Live sync failed.");
       }
     } catch (e) {
-      setSyncMsg({ ok: false, text: e.message || "Sync failed." });
+      setLiveError(e.message || "Live sync failed.");
     }
     setSyncing(false);
-  };
+  }, []);
+
+  React.useEffect(() => {
+    load();
+    sync();
+    const id = setInterval(sync, 30000);
+    return () => clearInterval(id);
+  }, [sync]);
 
   if (loading) return <div className="py-20 text-center text-muted-foreground">Loading…</div>;
 
@@ -120,15 +126,17 @@ export default function Dashboard() {
               <h1 className="text-2xl font-heading font-bold text-foreground">Dashboard</h1>
               <p className="text-sm text-muted-foreground">Live energy flow from your Anker SOLIX system</p>
             </div>
-            <Button onClick={sync} disabled={syncing} className="bg-solar text-black hover:bg-solar/90">
-              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing…" : "Sync now"}
-            </Button>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`w-2 h-2 rounded-full ${syncing ? "bg-solar animate-pulse" : "bg-primary"}`} style={{ boxShadow: "0 0 8px currentColor" }} />
+              <span className="text-muted-foreground">
+                {syncing ? "Syncing live…" : lastSyncAt ? `Live · updated ${lastSyncAt.toLocaleTimeString()}` : "Live feed"}
+              </span>
+            </div>
           </div>
 
-          {syncMsg && (
-            <div className={`text-sm rounded-lg p-3 ${syncMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-              {syncMsg.text}
+          {liveError && (
+            <div className="text-xs rounded-lg p-2 bg-destructive/10 text-destructive">
+              {liveError}
             </div>
           )}
 
