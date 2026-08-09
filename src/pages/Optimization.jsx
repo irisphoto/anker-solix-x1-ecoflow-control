@@ -10,6 +10,8 @@ import { Zap, Play, CheckCircle2, TrendingUp } from "lucide-react";
 import EnergyChart from "@/components/EnergyChart";
 import AiOptimizationCard from "@/components/AiOptimizationCard";
 import EvChargeRuleCard from "@/components/EvChargeRuleCard";
+import DischargeNowCard from "@/components/DischargeNowCard";
+import ExportToGridCard from "@/components/ExportToGridCard";
 
 const MODES = [
   { value: "self_use", label: "Self-use" },
@@ -109,6 +111,10 @@ export default function Optimization() {
       <AiOptimizationCard device={device} />
 
       <EvChargeRuleCard tariff={tariff} schedule={schedule} updateSchedule={updateSchedule} ensureSchedule={ensureSchedule} />
+
+      <DischargeNowCard device={device} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
+
+      <ExportToGridCard device={device} />
 
       {tariff ? (
         <Card>

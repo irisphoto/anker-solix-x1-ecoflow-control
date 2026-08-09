@@ -11,10 +11,8 @@ import SystemStatus from "@/components/SystemStatus";
 import FlowMeter from "@/components/FlowMeter";
 import SavingsCard from "@/components/SavingsCard";
 import QuickModeSwitch from "@/components/QuickModeSwitch";
-import DischargeNowCard from "@/components/DischargeNowCard";
 import SavingsChart from "@/components/SavingsChart";
 import BatteryFlowChart from "@/components/BatteryFlowChart";
-import ExportToGridCard from "@/components/ExportToGridCard";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -40,7 +38,6 @@ export default function Dashboard() {
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [syncMsg, setSyncMsg] = React.useState(null);
-  const [discharging, setDischarging] = React.useState(false);
 
   const load = async () => {
     try {
@@ -119,10 +116,6 @@ export default function Dashboard() {
 
           <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
 
-          <DischargeNowCard device={device} onActiveChange={setDischarging} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
-
-          <ExportToGridCard device={device} />
-
           <SavingsChart />
 
           <BatteryFlowChart device={device} />
@@ -139,7 +132,7 @@ export default function Dashboard() {
                 <PowerFlow
                   solar={device.solar_power_w}
                   home={device.home_usage_w}
-                  battery={discharging && device.battery_power_w <= 0 ? (device.home_usage_w > 0 ? device.home_usage_w : 300) : device.battery_power_w}
+                  battery={device.battery_power_w}
                   grid={device.grid_power_w}
                   evCharger={device.ev_charger_power_w || 0}
                 />
