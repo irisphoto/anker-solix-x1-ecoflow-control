@@ -13,6 +13,7 @@ import SavingsCard from "@/components/SavingsCard";
 import QuickModeSwitch from "@/components/QuickModeSwitch";
 import DischargeNowCard from "@/components/DischargeNowCard";
 import SavingsChart from "@/components/SavingsChart";
+import BatteryFlowChart from "@/components/BatteryFlowChart";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -120,6 +121,8 @@ export default function Dashboard() {
           <DischargeNowCard device={device} onActiveChange={setDischarging} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
 
           <SavingsChart />
+
+          <BatteryFlowChart device={device} />
 
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="md:col-span-2">
