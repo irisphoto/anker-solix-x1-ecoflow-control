@@ -14,6 +14,7 @@ import QuickModeSwitch from "@/components/QuickModeSwitch";
 import DischargeNowCard from "@/components/DischargeNowCard";
 import SavingsChart from "@/components/SavingsChart";
 import BatteryFlowChart from "@/components/BatteryFlowChart";
+import ExportToGridCard from "@/components/ExportToGridCard";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -119,6 +120,8 @@ export default function Dashboard() {
           <QuickModeSwitch device={device} onApplied={(a) => setDevices((prev) => a && a.charging_mode ? prev.map((d) => d.id === device.id ? { ...d, charging_mode: a.charging_mode, last_sync: a.last_sync } : d) : prev)} />
 
           <DischargeNowCard device={device} onActiveChange={setDischarging} onApplied={(a) => setDevices((prev) => prev.map((d) => d.id === device.id ? { ...d, backup_reserve: a.backup_reserve ?? d.backup_reserve, last_sync: a.last_sync ?? d.last_sync } : d))} />
+
+          <ExportToGridCard device={device} />
 
           <SavingsChart />
 

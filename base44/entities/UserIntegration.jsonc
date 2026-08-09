@@ -29,6 +29,12 @@
     },
     "octopus_account_number": {
       "type": "string"
+    },
+    "ha_webhook_url": {
+      "type": "string"
+    },
+    "ha_webhook_token": {
+      "type": "string"
     }
   },
   "required": [],

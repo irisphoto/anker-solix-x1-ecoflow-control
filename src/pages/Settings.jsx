@@ -8,7 +8,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
-import { Cloud, RefreshCw, AlertTriangle, CheckCircle2, LogOut, Zap, Save, Lock } from "lucide-react";
+import { Cloud, RefreshCw, AlertTriangle, CheckCircle2, LogOut, Zap, Save, Lock, Cable, Info } from "lucide-react";
 
 const COUNTRIES = [
   "AL","AM","AR","AT","AU","AZ","BA","BE","BG","BR","BY","CA","CH","CY","CZ","DE","DK","DZ","EE","EG","EL",
@@ -27,6 +27,8 @@ export default function Settings() {
   const [ankerCountry, setAnkerCountry] = React.useState("UK");
   const [octoKey, setOctoKey] = React.useState("");
   const [octoAccount, setOctoAccount] = React.useState("");
+  const [haWebhook, setHaWebhook] = React.useState("");
+  const [haToken, setHaToken] = React.useState("");
 
   const [saving, setSaving] = React.useState(false);
   const [saveMsg, setSaveMsg] = React.useState(null);
@@ -48,6 +50,7 @@ export default function Settings() {
           setAnkerEmail(cfg.anker_email || "");
           setAnkerCountry(cfg.anker_country || "UK");
           setOctoAccount(cfg.octopus_account_number || "");
+          setHaWebhook(cfg.ha_webhook_url || "");
         }
       } catch {}
       setLoading(false);
@@ -68,6 +71,8 @@ export default function Settings() {
     };
     if (ankerPassword.trim()) payload.anker_password = ankerPassword.trim();
     if (octoKey.trim()) payload.octopus_api_key = octoKey.trim();
+    if (haWebhook.trim()) payload.ha_webhook_url = haWebhook.trim();
+    if (haToken.trim()) payload.ha_webhook_token = haToken.trim();
     if (config && config.id) {
       await base44.entities.UserIntegration.update(config.id, payload);
     } else {
@@ -239,6 +244,34 @@ export default function Settings() {
           {octoMsg && (
             <div className={`text-sm rounded-lg p-3 ${octoMsg.ok ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>{octoMsg.text}</div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Cable className="w-4 h-4" /> Home Assistant (force export to grid)
+          </CardTitle>
+          <CardDescription>
+            Optional. The Anker X1 cloud API can't force battery-to-grid export, so this app triggers a webhook on your Home Assistant (which talks to the X1 over local Modbus) to sell to the grid on demand.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="ha-webhook">Webhook URL</Label>
+            <Input id="ha-webhook" value={haWebhook} onChange={(e) => setHaWebhook(e.target.value)} placeholder="https://your-ha.example/api/webhook/anker-export" autoComplete="off" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ha-token">Bearer token (optional)</Label>
+            <Input id="ha-token" type="password" value={haToken} onChange={(e) => setHaToken(e.target.value)} placeholder={config && config.ha_webhook_token ? "•••••• (leave blank to keep current)" : "Optional shared secret"} autoComplete="off" />
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-3 flex gap-2">
+            <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div>In Home Assistant: create an Automation with a <b>Webhook</b> trigger (webhook ID e.g. <code>anker-export</code>). Expose HA to the internet via Nabu Casa or a tunnel so this app can reach it.</div>
+              <div>The webhook receives <code>POST</code> with JSON <code>{`{ "action": "export_to_grid" }`}</code> (plus <code>Authorization: Bearer …</code> if you set a token). The automation action then calls your local Anker X1 Modbus integration to discharge / sell-to-grid.</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
