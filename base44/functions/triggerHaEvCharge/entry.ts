@@ -16,8 +16,8 @@ export default async function (req) {
     const cfg = await getUserIntegration(base44);
     if (!cfg || !cfg.ha_webhook_url || !String(cfg.ha_webhook_url).trim()) {
       return Response.json(
-        { error: "Home Assistant webhook URL not configured. Add it in Settings → Home Assistant." },
-        { status: 400 }
+        { success: false, error: "Home Assistant webhook URL not configured. Add it in Settings → Home Assistant, then press Charge EV again." },
+        { status: 200 }
       );
     }
 
