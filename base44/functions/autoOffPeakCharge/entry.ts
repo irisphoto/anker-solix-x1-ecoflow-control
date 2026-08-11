@@ -45,11 +45,33 @@ export default async function (req) {
     const targetSoc = schedule && schedule.off_peak_target_soc != null ? Number(schedule.off_peak_target_soc) : 100;
     const batteryLevel = Number(device.battery_level || 0);
     const inOffPeak = inOffPeakWindow(tariff);
-    const belowTarget = batteryLevel < targetSoc;
+
+    // Load-balancing strategy between the battery and an EV charging at the
+    // same time during off-peak. The Anker cloud API can't throttle the battery
+    // charge power, so balancing is expressed as mode changes + a hint to HA:
+    //   none          -> battery charges full (no balancing)
+    //   defer_battery -> pause battery grid-charge while the EV is drawing power
+    //   ev_half_share -> battery charges full; EV is throttled via the HA webhook
+    //   alternating   -> battery grid-charges only to a lower split target, then
+    //                    stops so the EV gets the rest of the window at full capacity
+    const loadBalance = schedule ? String(schedule.off_peak_load_balance || "none") : "none";
+    const altTarget = Number((schedule && schedule.off_peak_alternating_target_soc) || 50);
+    const evChargingW = Number(device.ev_charger_power_w || 0);
+    const evCharging = evChargingW > 100;
+
+    const effectiveTarget = loadBalance === "alternating" ? Math.min(altTarget, targetSoc) : targetSoc;
+    const belowTarget = batteryLevel < effectiveTarget;
 
     // time_of_use = Anker cost-saving mode that charges the battery from grid
     // during the cheap window; self_use = solar/home priority, no forced grid charge.
-    const shouldCharge = enabled && inOffPeak && belowTarget;
+    let shouldCharge = enabled && inOffPeak && belowTarget;
+    let deferReason = null;
+    if (shouldCharge && loadBalance === "defer_battery" && evCharging) {
+      // EV is actively charging — give it the full off-peak capacity; the battery
+      // resumes grid-charging once the EV stops.
+      shouldCharge = false;
+      deferReason = "ev_charging";
+    }
     const desiredMode = shouldCharge ? "time_of_use" : "self_use";
     const lastAction = schedule ? schedule.off_peak_last_action : null;
     const modeUnchanged = desiredMode === lastAction;
@@ -62,6 +84,11 @@ export default async function (req) {
       in_off_peak: inOffPeak,
       battery_level: batteryLevel,
       target_soc: targetSoc,
+      effective_target_soc: effectiveTarget,
+      load_balance: loadBalance,
+      ev_charging_w: evChargingW,
+      ev_charging: evCharging,
+      defer_reason: deferReason,
       enabled,
       should_charge: shouldCharge,
       action: desiredMode,

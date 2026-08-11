@@ -78,6 +78,24 @@
     "off_peak_last_checked": {
       "type": "string",
       "format": "date-time"
+    },
+    "off_peak_load_balance": {
+      "type": "string",
+      "enum": [
+        "none",
+        "defer_battery",
+        "ev_half_share",
+        "alternating"
+      ],
+      "default": "none"
+    },
+    "off_peak_capacity_w": {
+      "type": "number",
+      "default": 7400
+    },
+    "off_peak_alternating_target_soc": {
+      "type": "number",
+      "default": 50
     }
   },
   "required": [

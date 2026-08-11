@@ -2,6 +2,7 @@ import React from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,33 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
   React.useEffect(() => {
     setTargetInput(String(storedTarget));
   }, [storedTarget]);
+
+  const [capInput, setCapInput] = React.useState(String(schedule?.off_peak_capacity_w ?? 7400));
+  const [altInput, setAltInput] = React.useState(String(schedule?.off_peak_alternating_target_soc ?? 50));
+  const storedCap = schedule?.off_peak_capacity_w ?? 7400;
+  const storedAlt = schedule?.off_peak_alternating_target_soc ?? 50;
+  React.useEffect(() => { setCapInput(String(storedCap)); }, [storedCap]);
+  React.useEffect(() => { setAltInput(String(storedAlt)); }, [storedAlt]);
+
+  const loadBalance = schedule?.off_peak_load_balance || "none";
+
+  const onStrategy = async (v) => {
+    const s = schedule || (await ensureSchedule());
+    if (!s) return;
+    await updateSchedule("off_peak_load_balance", v);
+  };
+  const onCapBlur = async () => {
+    const s = schedule || (await ensureSchedule());
+    if (!s) return;
+    const val = Number(capInput);
+    if (!isNaN(val) && val > 0) await updateSchedule("off_peak_capacity_w", val);
+  };
+  const onAltBlur = async () => {
+    const s = schedule || (await ensureSchedule());
+    if (!s) return;
+    const val = Number(altInput);
+    if (!isNaN(val) && val >= 10 && val <= 100) await updateSchedule("off_peak_alternating_target_soc", val);
+  };
 
   const enabled = !!(schedule && schedule.off_peak_charge_enabled);
   const hasOffPeak = !!(tariff && tariff.has_off_peak);
@@ -132,6 +160,66 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
             className="w-full accent-grid"
           />
           <p className="text-[11px] text-muted-foreground">Stop grid-charging once the battery reaches this level.</p>
+        </div>
+
+        <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-solar" />
+            <span className="text-sm font-medium">Load balancing with EV charging</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "none", label: "Off (battery full)" },
+              { value: "defer_battery", label: "Defer battery" },
+              { value: "ev_half_share", label: "Split via HA" },
+              { value: "alternating", label: "Alternating" },
+            ].map((o) => (
+              <Button
+                key={o.value}
+                size="sm"
+                variant={loadBalance === o.value ? "default" : "outline"}
+                onClick={() => onStrategy(o.value)}
+              >
+                {o.label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {loadBalance === "defer_battery" && "Pauses battery grid-charging while the EV is drawing power, then resumes once it stops."}
+            {loadBalance === "ev_half_share" && "Keeps the battery charging and tells Home Assistant to cap the EV at half your off-peak capacity. Add HA-side current limiting that reads max_charge_power_w from the webhook."}
+            {loadBalance === "alternating" && "Battery grid-charges to a lower target first, then stops so the EV gets full capacity for the rest of the window."}
+            {loadBalance === "none" && "Battery charges at full rate; no coordination with EV charging."}
+          </p>
+          {(loadBalance === "ev_half_share" || loadBalance === "alternating") && (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {loadBalance === "ev_half_share" && (
+                <div className="space-y-1">
+                  <Label>Off-peak capacity (W)</Label>
+                  <Input
+                    type="number" min="0" step="100" value={capInput}
+                    disabled={!schedule}
+                    onChange={(e) => setCapInput(e.target.value)}
+                    onBlur={onCapBlur}
+                  />
+                  <p className="text-[11px] text-muted-foreground">EV is capped at half of this while the battery also charges.</p>
+                </div>
+              )}
+              {loadBalance === "alternating" && (
+                <div className="space-y-1">
+                  <Label>Battery split target ({altInput}%)</Label>
+                  <input
+                    type="range" min={10} max={90} step={5}
+                    value={altInput}
+                    disabled={!schedule}
+                    onChange={(e) => setAltInput(e.target.value)}
+                    onBlur={onAltBlur}
+                    className="w-full accent-solar"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Battery charges to this, then the EV gets the rest of the window.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
