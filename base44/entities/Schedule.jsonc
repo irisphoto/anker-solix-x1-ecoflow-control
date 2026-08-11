@@ -62,6 +62,22 @@
     "ev_last_checked": {
       "type": "string",
       "format": "date-time"
+    },
+    "off_peak_charge_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "off_peak_target_soc": {
+      "type": "number",
+      "default": 100
+    },
+    "off_peak_last_action": {
+      "type": "string",
+      "default": ""
+    },
+    "off_peak_last_checked": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

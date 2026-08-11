@@ -1,0 +1,45 @@
+{
+  "description": "Every 30 minutes, during your configured off-peak tariff window the X1 is forced into time-of-use mode to charge the battery from the cheap grid until it reaches your target state-of-charge, then reverts to self-use. Ideal for topping up the battery before EV charging.",
+  "name": "Auto Off-Peak Charge",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_off_peak_charge",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_rule": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "autoOffPeakCharge",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Run off-peak charge rule",
+            "description": "Charge battery from grid during off-peak hours"
+          }
+        }
+      }
+    ]
+  }
+}
