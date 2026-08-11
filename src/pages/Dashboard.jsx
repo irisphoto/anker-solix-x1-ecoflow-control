@@ -174,7 +174,7 @@ export default function Dashboard() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Battery</CardTitle>
+                  <CardTitle className="text-base">Home battery</CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center pt-2">
                   <BatteryGauge level={device.battery_level} capacityWh={device.battery_capacity_wh} />
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Battery → Home Flow</CardTitle>
+                  <CardTitle className="text-base">Home battery → Home flow</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
                   <FlowMeter power={device.battery_power_w < 0 ? 0 : Math.abs(device.battery_power_w)} />
@@ -195,7 +195,7 @@ export default function Dashboard() {
                 <StatCard icon={Home} label="Home" value={`${Math.round(device.home_usage_w)} W`} sub="consuming" color="hsl(var(--home))" />
                 <StatCard
                   icon={Battery}
-                  label="Battery"
+                  label="Home battery"
                   value={`${Math.abs(Math.round(device.battery_power_w))} W`}
                   sub={device.battery_power_w < 0 ? "charging" : "discharging"}
                   color="hsl(152 72% 55%)"

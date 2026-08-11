@@ -106,13 +106,13 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-base flex items-center gap-2">
-              <MoonStar className="w-4 h-4 text-grid" /> Off-Peak Battery Charging
+              <MoonStar className="w-4 h-4 text-grid" /> Off-Peak Home Battery Charging
             </CardTitle>
             <CardDescription>
-              Tops up the battery from the grid during your off-peak tariff window, so "Charge EV now (battery-first)" runs on cheap stored energy.
+              Tops up your home battery (Anker X1) from the grid during your off-peak tariff window, so "Charge EV now (home battery-first)" runs on cheap stored energy instead of peak-rate import.
             </CardDescription>
           </div>
-          <Switch checked={enabled} onCheckedChange={onToggle} aria-label="Enable off-peak battery charging" />
+          <Switch checked={enabled} onCheckedChange={onToggle} aria-label="Enable off-peak home battery charging" />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -139,7 +139,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Battery now</Label>
+              <Label>Home battery now</Label>
               <div className="flex items-baseline gap-1">
                 <span className="text-lg font-semibold">{Math.round(batteryLevel)}%</span>
                 <span className="text-xs text-muted-foreground">/ target {Math.round(targetSoc)}%</span>
@@ -150,7 +150,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
         )}
 
         <div className="space-y-1">
-          <Label>Target state-of-charge ({targetInput}%)</Label>
+          <Label>Home battery target ({targetInput}%)</Label>
           <input
             type="range" min={10} max={100} step={5}
             value={targetInput}
@@ -159,7 +159,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
             onBlur={onTargetBlur}
             className="w-full accent-grid"
           />
-          <p className="text-[11px] text-muted-foreground">Stop grid-charging once the battery reaches this level.</p>
+          <p className="text-[11px] text-muted-foreground">Stop grid-charging once the home battery reaches this level.</p>
         </div>
 
         <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
@@ -169,8 +169,8 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              { value: "none", label: "Off (battery full)" },
-              { value: "defer_battery", label: "Defer battery" },
+              { value: "none", label: "Off (home battery full)" },
+              { value: "defer_battery", label: "Defer home battery" },
               { value: "ev_half_share", label: "Split via HA" },
               { value: "alternating", label: "Alternating" },
             ].map((o) => (
@@ -185,10 +185,10 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
             ))}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {loadBalance === "defer_battery" && "Pauses battery grid-charging while the EV is drawing power, then resumes once it stops."}
-            {loadBalance === "ev_half_share" && "Keeps the battery charging and tells Home Assistant to cap the EV at half your off-peak capacity. Add HA-side current limiting that reads max_charge_power_w from the webhook."}
-            {loadBalance === "alternating" && "Battery grid-charges to a lower target first, then stops so the EV gets full capacity for the rest of the window."}
-            {loadBalance === "none" && "Battery charges at full rate; no coordination with EV charging."}
+            {loadBalance === "defer_battery" && "Pauses home battery grid-charging while the EV is drawing power, then resumes once it stops."}
+            {loadBalance === "ev_half_share" && "Keeps the home battery charging and tells Home Assistant to cap the EV at half your off-peak capacity. Add HA-side current limiting that reads max_charge_power_w from the webhook."}
+            {loadBalance === "alternating" && "Home battery grid-charges to a lower target first, then stops so the EV gets full capacity for the rest of the window."}
+            {loadBalance === "none" && "Home battery charges at full rate; no coordination with EV charging."}
           </p>
           {(loadBalance === "ev_half_share" || loadBalance === "alternating") && (
             <div className="grid sm:grid-cols-2 gap-4">
@@ -201,12 +201,12 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
                     onChange={(e) => setCapInput(e.target.value)}
                     onBlur={onCapBlur}
                   />
-                  <p className="text-[11px] text-muted-foreground">EV is capped at half of this while the battery also charges.</p>
+                  <p className="text-[11px] text-muted-foreground">EV is capped at half of this while the home battery also charges.</p>
                 </div>
               )}
               {loadBalance === "alternating" && (
                 <div className="space-y-1">
-                  <Label>Battery split target ({altInput}%)</Label>
+                  <Label>Home battery split target ({altInput}%)</Label>
                   <input
                     type="range" min={10} max={90} step={5}
                     value={altInput}
@@ -215,7 +215,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
                     onBlur={onAltBlur}
                     className="w-full accent-solar"
                   />
-                  <p className="text-[11px] text-muted-foreground">Battery charges to this, then the EV gets the rest of the window.</p>
+                  <p className="text-[11px] text-muted-foreground">Home battery charges to this, then the EV gets the rest of the window.</p>
                 </div>
               )}
             </div>
@@ -230,11 +230,11 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
           {enabled ? (
             wouldCharge ? (
               <span className="flex items-center gap-1.5 text-sm text-primary font-medium">
-                <Zap className="w-4 h-4" /> Charging the battery from the grid now
+                <Zap className="w-4 h-4" /> Charging the home battery from the grid now
               </span>
             ) : inOffPeak ? (
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4" /> Battery already at target
+                <CheckCircle2 className="w-4 h-4" /> Home battery already at target
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">Waiting for the off-peak window</span>
@@ -252,7 +252,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
         <div className="flex items-start gap-2 rounded-lg bg-muted/40 border p-3">
           <Car className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground">
-            Pairs with <b>EV Price-Triggered Charging</b> above: this rule fills the battery cheaply overnight, then "Charge EV now (battery-first)" draws from that stored energy instead of peak-rate grid power. It runs automatically every 30 minutes via the <b>Auto Off-Peak Charge</b> workflow.
+            Pairs with <b>EV Price-Triggered Charging</b> above: this rule fills the home battery cheaply overnight, then "Charge EV now (home battery-first)" draws from that stored energy instead of peak-rate grid power. It runs automatically every 30 minutes via the <b>Auto Off-Peak Charge</b> workflow.
           </p>
         </div>
 
@@ -264,7 +264,7 @@ export default function OffPeakChargeCard({ tariff, schedule, updateSchedule, en
             {result.action === "disabled"
               ? "Rule is disabled — enable it to auto-charge."
               : result.applied
-                ? `Applied: ${result.action === "time_of_use" ? "started grid-charging the battery" : "reverted to self-use"}${result.in_off_peak ? " during off-peak" : ""}. Battery ${Math.round(Number(result.battery_level))}% → target ${Math.round(Number(result.target_soc))}%.`
+                ? `Applied: ${result.action === "time_of_use" ? "started grid-charging the home battery" : "reverted to self-use"}${result.in_off_peak ? " during off-peak" : ""}. Home battery ${Math.round(Number(result.battery_level))}% → target ${Math.round(Number(result.target_soc))}%.`
                 : result.skipped
                   ? `No change — already ${result.action === "time_of_use" ? "charging" : "self-use"}${result.in_off_peak ? " in off-peak" : ""}.`
                   : `Off-peak ${result.in_off_peak ? "active" : "inactive"} — ${result.should_charge ? "would charge" : "would wait"}.`}

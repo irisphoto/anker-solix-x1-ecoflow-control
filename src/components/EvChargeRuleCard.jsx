@@ -101,7 +101,7 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
         device_id: schedule?.device_id || null,
       });
       if (res.data && res.data.success) {
-        setChargeMsg({ ok: true, text: "Charge started via Home Assistant — battery powers the car first, grid fills the rest." });
+        setChargeMsg({ ok: true, text: "Charge started via Home Assistant — the home battery powers the car first, grid fills the rest." });
       } else {
         setChargeMsg({ ok: false, text: res.data?.error || "Could not reach Home Assistant." });
       }
@@ -169,7 +169,7 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
           </Button>
           <Button size="sm" variant="secondary" onClick={chargeNow} disabled={charging || !schedule}>
             {charging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BatteryCharging className="w-4 h-4 mr-2" />}
-            {charging ? "Starting…" : "Charge EV now (battery-first)"}
+            {charging ? "Starting…" : "Charge EV now (home battery-first)"}
           </Button>
           {schedule && schedule.ev_last_checked && (
             <span className="text-xs text-muted-foreground">
@@ -185,7 +185,7 @@ export default function EvChargeRuleCard({ tariff, schedule, updateSchedule, ens
         )}
 
         <p className="text-[11px] text-muted-foreground">
-          “Charge EV now” fires your Home Assistant webhook (configured in <Link to="/settings" className="text-primary underline">Settings</Link>). Your HA automation should start the charger and set the X1 to self-consumption so the battery powers the car before the grid.
+          “Charge EV now” fires your Home Assistant webhook (configured in <Link to="/settings" className="text-primary underline">Settings</Link>). Your HA automation should start the charger and set the X1 to self-consumption so the home battery powers the car before the grid.
         </p>
 
         {result && result.error && (

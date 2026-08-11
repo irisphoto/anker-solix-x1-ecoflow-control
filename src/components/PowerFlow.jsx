@@ -70,7 +70,7 @@ export default function PowerFlow({ solar = 0, home = 0, battery = 0, grid = 0, 
 
         {/* Nodes */}
         <Node pos={solarPos} icon={Sun} label="Solar" value={`${Math.round(solar)} W`} color="hsl(38 92% 50%)" />
-        <Node pos={batteryPos} icon={Battery} label="Battery" value={batteryCharging ? "charging" : "discharging"} color="hsl(152 62% 40%)" />
+        <Node pos={batteryPos} icon={Battery} label="Home battery" value={batteryCharging ? "charging" : "discharging"} color="hsl(152 62% 40%)" />
         <Node pos={homePos} icon={Home} label="Home" value={`${Math.round(home)} W`} color="hsl(var(--foreground))" />
         <Node pos={gridPos} icon={Cable} label="Grid" value={gridImporting ? "import" : "export"} color="hsl(217 91% 55%)" />
         <Node pos={evPos} icon={Car} label="EV Charger" value={`${Math.round(evCharger)} W`} color="hsl(280 65% 55%)" />
