@@ -9,6 +9,13 @@ import DeviceComponents from "@/components/DeviceComponents";
 
 const MODES = ["self_use", "time_of_use", "backup", "manual"];
 
+const MODE_DESCRIPTIONS = {
+  self_use: "Self Use — Solar charges the home battery first, then powers the home; the grid is only used as a backup. Maximises self-consumption of your own generation.",
+  time_of_use: "Time-of-Use — Charges the home battery from the grid during your cheap off-peak window and discharges it during expensive peak hours to cut bills.",
+  backup: "Backup — Holds the home battery at your set reserve so it's kept full for power cuts; little or no daily cycling.",
+  manual: "Manual — Turns off automatic scheduling. The home battery only follows manual commands, so you control when it charges and discharges.",
+};
+
 export default function Devices() {
   const [devices, setDevices] = React.useState([]);
   const [busy, setBusy] = React.useState(null);
@@ -76,6 +83,9 @@ export default function Devices() {
                           </Button>
                         ))}
                       </div>
+                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+                        {MODE_DESCRIPTIONS[d.charging_mode] || "Select a mode to see what it does."}
+                      </p>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Backup reserve: {d.backup_reserve}%</div>
