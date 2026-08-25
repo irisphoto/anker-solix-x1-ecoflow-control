@@ -2,7 +2,7 @@ import React from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BatteryCharging, BatteryLow, Activity } from "lucide-react";
+import { BatteryCharging, Activity } from "lucide-react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ReferenceLine,
@@ -107,7 +107,7 @@ export default function BatteryFlowChart({ device }) {
               </div>
               <div className="rounded-lg border border-border/70 p-2.5">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <BatteryLow className="w-3.5 h-3.5" style={{ color: "hsl(152 62% 40%)" }} /> Discharging
+                  <BatteryCharging className="w-3.5 h-3.5" style={{ color: "hsl(152 62% 40%)" }} /> Discharging
                 </div>
                 <div className="text-lg font-heading font-semibold text-foreground">{Math.round(totalDischarge / 1000 * 10) / 10} kWh</div>
                 <div className="text-[10px] text-muted-foreground">out of battery</div>
