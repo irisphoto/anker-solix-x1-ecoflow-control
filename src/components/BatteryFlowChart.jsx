@@ -100,7 +100,7 @@ export default function BatteryFlowChart({ device }) {
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="rounded-lg border border-border/70 p-2.5">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <BatteryCharging className="w-3.5 h-3.5" style={{ color: "hsl(152 62% 40%)" }} /> Discharging
+                  <BatteryCharging className="w-3.5 h-3.5" style={{ color: "hsl(217 91% 55%)" }} /> Discharging
                 </div>
                 <div className="text-lg font-heading font-semibold text-foreground">{Math.round(totalCharge / 1000 * 10) / 10} kWh</div>
                 <div className="text-[10px] text-muted-foreground">out of battery</div>
@@ -141,8 +141,8 @@ export default function BatteryFlowChart({ device }) {
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <ReferenceLine yAxisId="w" y={0} stroke="hsl(var(--border))" />
-                <Area yAxisId="w" type="monotone" dataKey="charge" name="Discharging" stroke="hsl(152 62% 40%)" fill="url(#gBattDischarge)" strokeWidth={2} />
-                <Area yAxisId="w" type="monotone" dataKey="discharge" name="Charging" stroke="hsl(217 91% 55%)" fill="url(#gBattCharge)" strokeWidth={2} />
+                <Area yAxisId="w" type="monotone" dataKey="discharge" name="Discharging" stroke="hsl(152 62% 40%)" fill="url(#gBattDischarge)" strokeWidth={2} />
+                <Area yAxisId="w" type="monotone" dataKey="charge" name="Charging" stroke="hsl(217 91% 55%)" fill="url(#gBattCharge)" strokeWidth={2} />
                 <Line yAxisId="pct" type="monotone" dataKey="level" name="Level" stroke="hsl(38 92% 50%)" dot={false} strokeWidth={2} strokeDasharray="4 3" />
               </ComposedChart>
             </ResponsiveContainer>
